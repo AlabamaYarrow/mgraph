@@ -1,0 +1,5 @@
+{
+  "username": "neo4j",
+  "passwd": "1234",
+  "uri": "bolt://localhost:7687"
+}

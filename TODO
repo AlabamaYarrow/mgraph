@@ -1,0 +1,34 @@
+indexing?
+json data without encode?
+how index looks like?
+run "profile MATCH ... " in browser
+
+graphql
+
+HDS vs SSD
+
+disk vs memory
+
+arango atribute key?
+
+arango and mongo disk storage
+
+
+mongo 
+			 The graph data model can be
+		implemented by storing a JSON document for each vertex and a JSON document for each
+		edge. The edges are kept in special edge collections that ensure that every edge has from
+		and to attributes which reference the starting and ending vertices of the edge. Having
+		unified the data for the three data models in this way, it remains to implement a common
+		query language that allows users to express document queries, key/value lookups,
+		“graphy queries,” and arbitrary mixtures of these. By “graphy queries,” I mean queries
+		that involve the particular connectivity features coming from the edges, e.g.
+		ShortestPath, GraphTraversal, and PatternMatching. A Pattern Matching query in a
+		multi-model database identifies all paths that follow an arbitrary complex combination of
+		conditions. These conditions are composed of conditions on each single document or
+		edge and conditions on the overall layout created by these objects.
+
+Storing a graph in a relational database is simple and the fundamental operation of finding all neighbours of a vertex can be implemented in perfect complexity - o(k). - тут речь про один хоп
+
+Document graph
+	adding or removing an edge in a large graph becomes a performance problem, because we would have to write a new revision of at least the starting vertex if not both end points.
