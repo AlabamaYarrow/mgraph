@@ -17,6 +17,7 @@ def write_towns():
         for x in range(1, total_towns):
             f.write('{x};town{x}\n'.format(x=x))
 
+
 def write_towns_with_types():
     with open('town_with_types.csv', 'w') as f:
         for x in range(1, total_towns):

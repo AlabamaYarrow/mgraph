@@ -14,7 +14,6 @@ if __name__ == '__main__':
         Metagraph.create_node(label='town', nid=i)
         Metagraph.connect_nodes(from_id=i-1, to_id=i)
 
-
     """
     MATCH (t1:town {nid: 1})-[*..]->(t1:town {nid: 49})
     RETURN g1
