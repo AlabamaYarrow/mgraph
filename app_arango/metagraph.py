@@ -1,10 +1,13 @@
 import time
 from pyArango.connection import Connection
-from pyArango.graph import
 from app_arango.settings import USERNAME, PASSWORD, DB_NAME
 
 
 # TODO effect of rawResults=True  batchSize=100 for AQLQuery()
+
+
+def key_to_id(coll, key):
+    return '{}/{}'.format(coll, key)
 
 
 # noinspection PyProtectedMember
@@ -21,11 +24,14 @@ class MetaGraph:
     EDGES_COLL = 'NodesConnections'  # internal arango edges
     METAEDGES_COLL = 'NodesConnections'  # 'submeta' edges
 
+    GRAPH = 'NodesGraph'
+
     METAEDGE_LABEL = 'submeta'
 
     def __init__(self):
         conn = Connection(username=USERNAME, password=PASSWORD)
         self.db = conn[DB_NAME]
+
         self.nodes = self.db[self.NODES_COLL]
         self.edges = self.db[self.EDGES_COLL]
         self.edges_nodes = self.db[self.EDGENODE_COLL]
@@ -33,7 +39,9 @@ class MetaGraph:
 
     def truncate(self):
         self.nodes.truncate()
+        self.edges_nodes.truncate()
         self.edges.truncate()
+        self.meta_edges.truncate()
 
     def add_node_json(self, node_string):
         """
@@ -105,22 +113,60 @@ class MetaGraph:
         edge_node = self.db.AQLQuery(aql)[0]
         self._add_edge_submeta(edge_node, meta_node)
 
-    def remove_node(self, node_key):
-        if type(node_key) is not str:
-            node_key = node_key._key
-        aql = 'REMOVE "{node_key}" IN {nodes_collection}'.format(
-            node_key=node_key, nodes_collection=self.NODES_COLL
+    def remove_node(self, node, remove_submeta=False):
+        """
+        Remove node. Must remove node adjacent edges,
+        edgenodes and edgenodes adjacent edges.
+        :param remove_submeta: remove content of metanode
+        """
+        def _remove_node(_node_key):
+            """
+            Remove internal node and its edges.
+            """
+            # Automatic removal of adjacent edges is
+            # probably not supported in Arango yet
+            _aql = '''
+                LET keys = (FOR v, e IN 1..1 ANY '{node_id}' GRAPH '{graph}' REMOVE e._key IN {edges_collection})
+                REMOVE '{node_key}' IN {nodes_collection}
+            '''.format(
+                node_id=key_to_id(self.NODES_COLL, _node_key),
+                graph=self.GRAPH,
+                edges_collection=self.EDGES_COLL,
+                nodes_collection=self.NODES_COLL,
+                edgenodes_collection=self.EDGES_COLL,
+                node_key=_node_key
+            )
+            print(_aql)
+            self.db.AQLQuery(_aql)
+
+        if type(node) is str:
+            node_key = node
+        else:
+            node_key = node._key
+
+        _remove_node(node_key)
+
+        aql = '''
+            FOR e in {edgenodes_collection} FILTER e.from=='{node_id}' OR e.to=='{node_id}' RETURN e
+        '''.format(
+            edgenodes_collection=self.EDGENODE_COLL,
+            node_id=key_to_id(self.NODES_COLL, node_key),
         )
-        print(aql)
-        # todo remove EDGENODES
+        print('edge node aql', aql)
+        print('node key', key_to_id(self.NODES_COLL, node_key))
+        edge_nodes = self.db.AQLQuery(aql)
+        print('edge nodes', edge_nodes)
+        for edge_node in edge_nodes:
+            _remove_node(edge_node._key)
 
-        return self.db.AQLQuery(aql)
+        if remove_submeta:
+            pass  # TODO
 
-    def remove_from_metanode(self, node_id, meta_node):
+    def remove_from_metanode(self, node, meta_node):
         # TODO
         pass
 
-    def remove_edge_metanode(self, node_id, meta_node):
+    def remove_edge_metanode(self, from_node, to_node, meta_node):
         # TODO
         pass
 
@@ -133,14 +179,17 @@ def main():
     n2 = m.add_node(name='V2', nid='2')
     n3 = m.add_node(name='V3', nid='3')
     e12 = m.add_edge(from_node=n1, to_node=n2)  # OR m.add_edge_to_metanode(n1, n2, mv1)
-
-    mv1 = m.add_node(name='MV1', nid='m1')
-
-    m.add_to_metanode(n1, mv1)
-    m.add_to_metanode(n2, mv1)
-    m.add_to_metanode(e12, mv1)
+    e13 = m.add_edge(from_node=n1, to_node=n3)  # OR m.add_edge_to_metanode(n1, n2, mv1)
 
     m.remove_node(n3)
+
+    # mv1 = m.add_node(name='MV1', nid='m1')
+    #
+    # m.add_to_metanode(n1, mv1)
+    # m.add_to_metanode(n2, mv1)
+    # m.add_to_metanode(e12, mv1)
+    #
+    # m.remove_node(n3)
 
     # print(m.add_node_json('{"name": "Berlin"}'))
     # print(m.add_node(name='Berlin'))
