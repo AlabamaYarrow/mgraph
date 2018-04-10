@@ -68,24 +68,9 @@ class MetaGraph:
         node.save()
         return node
 
-    def _add_edge(self, from_node, to_node, submeta=False):
-        """
-        Add internal edge.
-        """
-        edges_coll = self.meta_edges if submeta else self.edges
-        edge = edges_coll.createDocument()
-        edge._from = from_node._id
-        edge._to = to_node._id
-        if submeta:
-            edge[self.METAEDGE_LABEL] = True
-        edge.save()
-        return edge
-
-    def _add_edge_submeta(self, from_node, to_node):
-        return self._add_edge(from_node, to_node, submeta=True)
-
     def add_edge(self, from_node, to_node, **kwargs):
         edge_node = self.nodes.createDocument()
+        edge_node._key = kwargs['eid']
         edge_node['from'] = from_node._id
         edge_node['to'] = to_node._id
         for k, v in kwargs.items():
@@ -95,23 +80,43 @@ class MetaGraph:
         self._add_edge(from_node=edge_node, to_node=to_node)
         return edge_node
 
-    def add_to_metanode(self, node, meta_node):
-        self._add_edge_submeta(node, meta_node)
+    def add_to_metanode(self, node, metanode):
+        self._add_edge_submeta(node, metanode)
 
-    def add_edge_to_metanode(self, from_node, to_node, meta_node):
-        """
-        Find edgenode from from_node to to_node and add it to meta_node.
-        """
+    def filter_nodes(self, **kwargs):
+        query = ''
+        for i, (k, v) in enumerate(kwargs.items()):
+            if type(v) is str:
+                query_template = 'n.{k}=="{v}"'
+            else:
+                query_template = 'n.{k}=={v}'
+            query += query_template.format(k=k, v=v)
+            if i != len(kwargs) - 1:
+                query += ' AND '
+
         aql = '''
-            FOR n IN {nodes_collection}
-            FILTER n.from == '{from_id}' AND n.to == '{to_id}'
+            FOR n in {nodes_collection}
+            FILTER {query} 
             RETURN n
         '''.format(
-            from_id=from_node._id, to_id=to_node._id,
-            nodes_collection=self.EDGENODE_COLL
+            query=query,
+            nodes_collection=self.NODES_COLL
         )
-        edge_node = self._run_aql(aql)[0]
-        self._add_edge_submeta(edge_node, meta_node)
+        return self._run_aql(aql)
+
+    def update_node(self, node, **kwargs):
+        node_key = self._to_key(node)
+        node = self.nodes[node_key]
+        for k, v in kwargs.items():
+            node[k] = v
+        node.save()
+
+    def update_edge(self, edge, **kwargs):
+        edge_key = self._to_key(edge)
+        edge = self.edges_nodes[edge_key]
+        for k, v in kwargs.items():
+            edge[k] = v
+        edge.save()
 
     def remove_node(self, node, remove_submeta=False, recursive=False):
         """
@@ -123,10 +128,7 @@ class MetaGraph:
         if recursive and not remove_submeta:
             raise ValueError('Recursive removal only allowed when removing submeta')
 
-        if type(node) is str:
-            node_key = node
-        else:
-            node_key = node._key
+        node_key = self._to_key(node)
 
         aql = '''
             FOR e in {edgenodes_collection} FILTER e.from=='{node_id}' OR e.to=='{node_id}' RETURN e
@@ -139,10 +141,54 @@ class MetaGraph:
             self._remove_internal_node(edge_node._key)
 
         if remove_submeta:
-            print('removing submeta')
             self._remove_submeta_nodes(node, recursive_removal=recursive)
 
         self._remove_internal_node(node_key)
+
+    def remove_from_metanode(self, node, metanode):
+        node_key = self._to_key(node)
+        metanode_key = self._to_key(metanode)
+        aql = '''
+            FOR e IN {edges_collection}
+            FILTER e._from == '{node_id}' AND e._to == '{metanode_id}'
+            REMOVE e IN {edges_collection}
+        '''.format(
+            edges_collection=self.EDGES_COLL,
+            node_id=key_to_id(self.NODES_COLL, node_key),
+            metanode_id=key_to_id(self.NODES_COLL, metanode_key)
+        )
+        self._run_aql(aql)
+
+        return self._run_aql(aql)
+
+    def get_submeta_nodes(self, node):
+        aql = '''
+            FOR n,e IN 1..1 INBOUND '{node_id}' {edges_collection}
+            FILTER e.{submeta_label} == True
+            RETURN n
+        '''.format(
+            node_id=key_to_id(self.NODES_COLL, node._key),
+            edges_collection=self.EDGES_COLL,
+            submeta_label=self.METAEDGE_LABEL
+        )
+        return self._run_aql(aql)
+
+    def _add_edge(self, from_node, to_node, submeta=False):
+        """
+        Add internal edge.
+        :param submeta: edge connects metanode with its content
+        """
+        edges_coll = self.meta_edges if submeta else self.edges
+        edge = edges_coll.createDocument()
+        edge._from = from_node._id
+        edge._to = to_node._id
+        if submeta:
+            edge[self.METAEDGE_LABEL] = True
+        edge.save()
+        return edge
+
+    def _add_edge_submeta(self, from_node, to_node):
+        return self._add_edge(from_node, to_node, submeta=True)
 
     def _remove_internal_node(self, node_key):
         """
@@ -165,7 +211,6 @@ class MetaGraph:
             edgenodes_collection=self.EDGES_COLL,
             node_key=node_key
         )
-        print(_aql)
         self._run_aql(_aql)
 
     def _remove_submeta_nodes(self, node, recursive_removal=False):
@@ -177,31 +222,17 @@ class MetaGraph:
             remove_submeta, recursive = True, True
 
         submeta_nodes = self.get_submeta_nodes(node)
-        print('submeta_nodes', submeta_nodes)
         for submeta in submeta_nodes:
             self.remove_node(submeta, remove_submeta=remove_submeta, recursive=recursive)
 
-    def get_submeta_nodes(self, node):
-        aql = '''
-            FOR n,e IN 1..1 INBOUND '{node_id}' {edges_collection}
-            FILTER e.{submeta_label} == True
-            RETURN n
-        '''.format(
-            node_id=key_to_id(self.NODES_COLL, node._key),
-            edges_collection=self.EDGES_COLL,
-            submeta_label=self.METAEDGE_LABEL
-        )
-        return self._run_aql(aql)
-
-    def remove_from_metanode(self, node, meta_node):
-        # TODO
-        pass
-
-    def remove_edge_metanode(self, from_node, to_node, meta_node):
-        # TODO
-        pass
+    def _to_key(self, node):
+        if type(node) is str:
+            return node
+        else:
+            return node._key
 
     def _run_aql(self, aql):
+        print(aql)
         return self.db.AQLQuery(aql)
 
 
@@ -209,11 +240,31 @@ def main():
     m = MetaGraph()
     m.truncate()
 
+    n1 = m.add_node(name='V1', nid='1', some_key='hahaha', some_key_2=123)
+
+    # m.filter_nodes(some_key='hahaha', some_key_2=123)
+    # m.filter_nodes(some_key_2=123)
+
+    # m.update_edge('e12', xxx='yyy')
+    # m.update_node(n1, zzz='yyyzzz')
+
+    # e12 = m.add_node(name='V2', nid='e12')
+
+
+    # mv1 = m.add_node(name='MV1', nid='m1')
+
+    # m.add_to_metanode(n1, mv1)
+
+    # m.remove_from_metanode(n1, mv1)
+
     # n1 = m.add_node(name='V1', nid='1')
     # n2 = m.add_node(name='V2', nid='2')
     # n3 = m.add_node(name='V3', nid='3')
-    # e12 = m.add_edge(from_node=n1, to_node=n2)  # OR m.add_edge_to_metanode(n1, n2, mv1)
-    # e13 = m.add_edge(from_node=n1, to_node=n3)  # OR m.add_edge_to_metanode(n1, n2, mv1)
+    # e12 = m.add_edge(from_node=n1, to_node=n2)
+    # e13 = m.add_edge(from_node=n1, to_node=n3)
+    # without edgenode:
+    #  m.add_edge_to_metanode(n1, n2, mv1)
+    #  m.add_edge_to_metanode(n1, n2, mv1)
 
     # m.remove_node(n3)
 
@@ -225,15 +276,15 @@ def main():
     # m.add_to_metanode(n1, mv1)
     # m.add_to_metanode(e12, mv1)
 
-    mv1 = m.add_node(name='MV1', nid='m1')
-    mv2 = m.add_node(name='MV2', nid='m2')
-    mv3 = m.add_node(name='MV3', nid='m3')
-
-    m.add_to_metanode(mv3, mv2)
-    m.add_to_metanode(mv2, mv1)
+    # mv1 = m.add_node(name='MV1', nid='m1')
+    # mv2 = m.add_node(name='MV2', nid='m2')
+    # mv3 = m.add_node(name='MV3', nid='m3')
+    #
+    # m.add_to_metanode(mv3, mv2)
+    # m.add_to_metanode(mv2, mv1)
 
     # m.remove_node(mv1)
-    m.remove_node(mv1, remove_submeta=True, recursive=False)
+    # m.remove_node(mv1, remove_submeta=True, recursive=False)
 
     # m.remove_node(n3)
 
