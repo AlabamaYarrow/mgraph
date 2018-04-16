@@ -113,8 +113,8 @@ db.towns.truncate();
 		name: "e1",
 		type: "edge"
 	}]
-	for d in data insert d into Nodes
-  `);
+	for d in data insert d into Nodes 
+ `);
 
   // Связи
     db._query(`
@@ -142,11 +142,6 @@ db.towns.truncate();
 	]
 	for d in data insert d into NodesConnections
   `);
-
-{
-
-
-}
 
 
 

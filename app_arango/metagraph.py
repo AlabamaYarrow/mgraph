@@ -69,7 +69,7 @@ class MetaGraph:
         return node
 
     def add_edge(self, from_node, to_node, **kwargs):
-        edge_node = self.nodes.createDocument()
+        edge_node = self.edges_nodes.createDocument()
         edge_node._key = kwargs['eid']
         edge_node['from'] = from_node._id
         edge_node['to'] = to_node._id
@@ -83,20 +83,13 @@ class MetaGraph:
     def add_to_metanode(self, node, metanode):
         self._add_edge_submeta(node, metanode)
 
-    def filter_nodes(self, **kwargs):
-        query = ''
-        for i, (k, v) in enumerate(kwargs.items()):
-            if type(v) is str:
-                query_template = 'n.{k}=="{v}"'
-            else:
-                query_template = 'n.{k}=={v}'
-            query += query_template.format(k=k, v=v)
-            if i != len(kwargs) - 1:
-                query += ' AND '
+    def filter_nodes(self, query=None, **kwargs):
+        if not query:
+            query = self._build_query_string(**kwargs)
 
         aql = '''
             FOR n in {nodes_collection}
-            FILTER {query} 
+            FILTER {query}
             RETURN n
         '''.format(
             query=query,
@@ -140,6 +133,9 @@ class MetaGraph:
         for edge_node in edge_nodes:
             self._remove_internal_node(edge_node._key)
 
+        # TODO документная база бахала, когда удалял метаноду с
+        # двумя вложенными нодами, и ноды удалялись раньше связи
+
         if remove_submeta:
             self._remove_submeta_nodes(node, recursive_removal=recursive)
 
@@ -171,6 +167,7 @@ class MetaGraph:
             edges_collection=self.EDGES_COLL,
             submeta_label=self.METAEDGE_LABEL
         )
+        # TODO recursion?
         return self._run_aql(aql)
 
     def _add_edge(self, from_node, to_node, submeta=False):
@@ -224,6 +221,18 @@ class MetaGraph:
         submeta_nodes = self.get_submeta_nodes(node)
         for submeta in submeta_nodes:
             self.remove_node(submeta, remove_submeta=remove_submeta, recursive=recursive)
+
+    def _build_query_string(self, **kwargs):
+        query = ''
+        for i, (k, v) in enumerate(kwargs.items()):
+            if type(v) is str:
+                query_template = 'n.{k}=="{v}"'
+            else:
+                query_template = 'n.{k}=={v}'
+            query += query_template.format(k=k, v=v)
+            if i != len(kwargs) - 1:
+                query += ' AND '
+        return query
 
     def _to_key(self, node):
         if type(node) is str:
