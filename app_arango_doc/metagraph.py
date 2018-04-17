@@ -137,8 +137,20 @@ class MetaGraph:
         self._run_aql(aql)
 
         if not remove_submeta:
-            pass
-            # TODO if not removing submeta, remove self from submeta
+            # If not removing submeta node, remove link from them
+            aql = '''
+                FOR e IN Nodes FILTER e._key == '{node_key}'
+                    FOR submeta_key in e._submeta OR []
+                        FOR submeta_node IN {nodes_collection} 
+                        FILTER submeta_node._key == submeta_key
+                            UPDATE submeta_node 
+                            WITH {{ _supermeta: REMOVE_VALUE(submeta_node._supermeta, e._key)}} 
+                            IN {nodes_collection}
+            '''.format(
+                node_key=node_key,
+                nodes_collection=self.NODES_COLL
+            )
+            self._run_aql(aql)
 
         # Removing adjacent edges
         aql = '''
@@ -255,18 +267,21 @@ class MetaGraph:
 def main():
     m = MetaGraph()
     m.truncate()
-
+    #
     n1 = m.add_node(nid='v1', name='v1')
-    n2 = m.add_node(nid='v2', name='v2')
+    # n2 = m.add_node(nid='v2', name='v2')
     mv1 = m.add_node(nid='mv1', name='mv1')
-
-    e12 = m.add_edge(n1, n2, eid='e1', name='1234')
-
+    #
+    # e12 = m.add_edge(n1, n2, eid='e1', name='1234')
+    #
     m.add_to_metanode(n1, mv1)
-    m.add_to_metanode(n2, mv1)
-    m.add_to_metanode(e12, mv1)
 
-    print(m.get_submeta_nodes(mv1))
+
+    m.remove_node(mv1)
+    # m.add_to_metanode(n2, mv1)
+    # m.add_to_metanode(e12, mv1)
+    #
+    # print(m.get_submeta_nodes(mv1))
 
     # m.filter_nodes(name='mv1')
     #
@@ -285,6 +300,12 @@ def main():
     # m.remove_from_metanode(mv1, mv2)
 
     # m.remove_node(mv3, remove_submeta=True, recursive=True)
+
+    # total_nodes = 10000
+
+    # start_time = time.time()
+    # for i in range(total_nodes):
+    #     m.add_node_json('{"name": "Berlin"}')
 
 if __name__ == '__main__':
     main()
