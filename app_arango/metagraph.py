@@ -1,6 +1,6 @@
 import time
 from pyArango.connection import Connection
-from app_arango.settings import USERNAME, PASSWORD, DB_NAME
+from app_arango.settings import USERNAME, PASSWORD, DB_NAME, DEBUG
 
 
 # TODO effect of rawResults=True  batchSize=100 for AQLQuery()
@@ -241,7 +241,8 @@ class MetaGraph:
             return node._key
 
     def _run_aql(self, aql):
-        print(aql)
+        if DEBUG:
+            print(aql)
         return self.db.AQLQuery(aql)
 
 
