@@ -10,6 +10,10 @@ def key_to_id(coll, key):
 NB: edgenodes collection requires 
     hash indexes on "to" and "from"
     (sparse indexes if it's same collection with nodes)
+    
+    E.g. (arangosh command):
+        db.Nodes.ensureIndex({ type: "hash", fields: [ "from" ], sparse: true });
+        db.Nodes.ensureIndex({ type: "hash", fields: [ "to" ], sparse: true }); 
 """
 
 
@@ -57,8 +61,7 @@ class MetaGraph:
     def add_node(self, **kwargs):
         node = self.nodes.createDocument()
         node._key = kwargs['nid']
-        # node[self.IN_ATTR] = []
-        # node[self.OUT_ATTR] = []
+        del kwargs['nid']
         for k, v in kwargs.items():
             node[k] = v
         node.save()
@@ -67,14 +70,13 @@ class MetaGraph:
     def add_edge(self, from_node, to_node, **kwargs):
         edge_node = self.edges_nodes.createDocument()
         edge_node._key = kwargs['eid']
-        edge_node['from'] = from_node._id
-        edge_node['to'] = to_node._id
+        del kwargs['eid']
+        edge_node['from'] = key_to_id(self.NODES_COLL, self._to_key(from_node))
+        edge_node['to'] = key_to_id(self.NODES_COLL, self._to_key(to_node))
         for k, v in kwargs.items():
             edge_node[k] = v
         edge_node.save()
 
-        # self._add_to_list(from_node, edge_node, self.OUT_ATTR)
-        # self._add_to_list(to_node, edge_node, self.IN_ATTR)
         return edge_node
 
     def add_to_metanode(self, node, metanode):
@@ -268,18 +270,18 @@ def main():
     m = MetaGraph()
     m.truncate()
     #
-    n1 = m.add_node(nid='v1', name='v1')
-    # n2 = m.add_node(nid='v2', name='v2')
-    mv1 = m.add_node(nid='mv1', name='mv1')
+    n1 = m.add_node(nid='v1', name='vertex1')
+    n2 = m.add_node(nid='v2', name='vertex2')
+    mv1 = m.add_node(nid='mv1', name='metavertex1')
     #
-    # e12 = m.add_edge(n1, n2, eid='e1', name='1234')
+    e12 = m.add_edge(n1, n2, eid='e12', name='edge12')
     #
     m.add_to_metanode(n1, mv1)
 
+    m.add_to_metanode(n2, mv1)
+    m.add_to_metanode(e12, mv1)
 
-    m.remove_node(mv1)
-    # m.add_to_metanode(n2, mv1)
-    # m.add_to_metanode(e12, mv1)
+    # m.remove_node(mv1)
     #
     # print(m.get_submeta_nodes(mv1))
 
@@ -301,11 +303,7 @@ def main():
 
     # m.remove_node(mv3, remove_submeta=True, recursive=True)
 
-    # total_nodes = 10000
 
-    # start_time = time.time()
-    # for i in range(total_nodes):
-    #     m.add_node_json('{"name": "Berlin"}')
 
 if __name__ == '__main__':
     main()

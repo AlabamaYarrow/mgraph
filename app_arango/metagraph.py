@@ -71,8 +71,8 @@ class MetaGraph:
     def add_edge(self, from_node, to_node, **kwargs):
         edge_node = self.edges_nodes.createDocument()
         edge_node._key = kwargs['eid']
-        edge_node['from'] = from_node._id
-        edge_node['to'] = to_node._id
+        edge_node['from'] = key_to_id(self.NODES_COLL, self._to_key(from_node))
+        edge_node['to'] = key_to_id(self.NODES_COLL, self._to_key(to_node))
         for k, v in kwargs.items():
             edge_node[k] = v
         edge_node.save()
@@ -177,8 +177,9 @@ class MetaGraph:
         """
         edges_coll = self.meta_edges if submeta else self.edges
         edge = edges_coll.createDocument()
-        edge._from = from_node._id
-        edge._to = to_node._id
+
+        edge._from = key_to_id(self.NODES_COLL, self._to_key(from_node))
+        edge._to = key_to_id(self.NODES_COLL, self._to_key(to_node))
         if submeta:
             edge[self.METAEDGE_LABEL] = True
         edge.save()
@@ -250,7 +251,18 @@ def main():
     m = MetaGraph()
     m.truncate()
 
-    n1 = m.add_node(name='V1', nid='1', some_key='hahaha', some_key_2=123)
+    n1 = m.add_node(nid='v1', name='vertex1')
+    n2 = m.add_node(nid='v2', name='vertex2')
+    mv1 = m.add_node(nid='mv1', name='metavertex1')
+    #
+    e12 = m.add_edge(n1, n2, eid='e12', name='edge12')
+    #
+    m.add_to_metanode(n1, mv1)
+
+    m.add_to_metanode(n2, mv1)
+    m.add_to_metanode(e12, mv1)
+
+    # n1 = m.add_node(name='V1', nid='1', some_key='hahaha', some_key_2=123)
 
     # m.filter_nodes(some_key='hahaha', some_key_2=123)
     # m.filter_nodes(some_key_2=123)
