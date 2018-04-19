@@ -163,7 +163,7 @@ class MetaGraph:
             FILTER e.{submeta_label} == True
             RETURN n
         '''.format(
-            node_id=key_to_id(self.NODES_COLL, node._key),
+            node_id=key_to_id(self.NODES_COLL, self._to_key(node)),
             edges_collection=self.EDGES_COLL,
             submeta_label=self.METAEDGE_LABEL
         )
