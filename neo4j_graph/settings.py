@@ -13,7 +13,6 @@ with open(os.path.join(BASE_DIR, 'app_conf.json')) as f:
     config = json.load(f)
 
 
-USERNAME = json_config['username']
-PASSWD = json_config['passwd']
-URI = json_config['uri']
-
+USERNAME = config['username']
+PASSWD = config['passwd']
+URI = config['uri']

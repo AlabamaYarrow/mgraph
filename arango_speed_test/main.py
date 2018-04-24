@@ -1,5 +1,5 @@
-from app_arango_doc.metagraph import MetaGraph as DMetaGraph
-from app_arango.metagraph import MetaGraph as GMetaGraph
+from arango_doc.metagraph import MetaGraph as DMetaGraph
+from arango_graph.metagraph import MetaGraph as GMetaGraph
 import time
 
 graphs = (DMetaGraph, GMetaGraph)

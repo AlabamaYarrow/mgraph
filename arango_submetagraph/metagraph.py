@@ -1,6 +1,5 @@
-import time
 from pyArango.connection import Connection
-from app_arango_semidoc.settings import USERNAME, PASSWORD, DB_NAME, DEBUG
+from arango_submetagraph.settings import USERNAME, PASSWORD, DB_NAME, DEBUG
 
 
 def key_to_id(coll, key):

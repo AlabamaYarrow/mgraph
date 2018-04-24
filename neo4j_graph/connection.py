@@ -1,7 +1,7 @@
 import logging
 
 from neo4j.v1 import GraphDatabase
-from app.settings import USERNAME, PASSWD, URI
+from neo4j_graph.settings import USERNAME, PASSWD, URI
 
 
 logger = logging.getLogger(__name__)

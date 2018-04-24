@@ -1,8 +1,8 @@
 import logging
 from textwrap import dedent as dt
 
-from app.connection import Connection
-from app.utils import get_data_str
+from neo4j_graph.connection import Connection
+from neo4j_graph.utils import get_data_str
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())

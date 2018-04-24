@@ -1,6 +1,5 @@
-import time
 from pyArango.connection import Connection
-from app_arango.settings import USERNAME, PASSWORD, DB_NAME, DEBUG
+from arango_graph.settings import USERNAME, PASSWORD, DB_NAME, DEBUG
 
 
 # TODO effect of rawResults=True  batchSize=100 for AQLQuery()
