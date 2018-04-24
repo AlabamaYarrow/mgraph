@@ -10,11 +10,17 @@ def key_to_id(coll, key):
 Same as doc model, but we store submeta-relations as edges-documents instead of links in nodes.
 Equal removing internal edges between edgenodes and nodes in graph model.
 
-NB: edgenodes collection requires 
-    hash indexes on "to" and "from"
+
+NB: Creating edge collection and graph
+        var graph_module = require("org/arangodb/general-graph");
+        var edgeDefinitions = [{
+            collection: "NodesConnections", from: [ "Nodes" ], to : [ "Nodes" ]
+        }];
+        graph = graph_module._create("NodesGraph", edgeDefinitions);
+
+NB: edgenodes collection requires hash indexes on "to" and "from"
     (sparse indexes if it's same collection with nodes)
 
-    E.g. (arangosh command):
         db.Nodes.ensureIndex({ type: "hash", fields: [ "from" ], sparse: true });
         db.Nodes.ensureIndex({ type: "hash", fields: [ "to" ], sparse: true }); 
 """
@@ -23,7 +29,7 @@ NB: edgenodes collection requires
 # noinspection PyProtectedMember
 class MetaGraph:
     """
-    Arango metagraph API for semi-document storage.
+    Arango metagraph API for graph-submeta/document storage.
     """
 
     # Arango collections.
@@ -32,12 +38,17 @@ class MetaGraph:
 
     METAEDGES_COLL = 'NodesConnections'  # 'submeta' edges
 
+    METAEDGE_LABEL = 'submeta'
+
+    GRAPH = 'NodesGraph'
+
     def __init__(self):
         conn = Connection(username=USERNAME, password=PASSWORD)
         self.db = conn[DB_NAME]
 
         self.nodes = self.db[self.NODES_COLL]
         self.edges_nodes = self.db[self.EDGENODE_COLL]
+        self.meta_edges = self.db[self.METAEDGES_COLL]
 
     def truncate(self):
         self.nodes.truncate()
@@ -75,11 +86,16 @@ class MetaGraph:
         for k, v in kwargs.items():
             edge_node[k] = v
         edge_node.save()
-
         return edge_node
 
     def add_to_metanode(self, node, metanode):
+        edge = self.meta_edges.createDocument()
 
+        edge._from = key_to_id(self.NODES_COLL, self._to_key(node))
+        edge._to = key_to_id(self.NODES_COLL, self._to_key(metanode))
+        edge[self.METAEDGE_LABEL] = True
+        edge.save()
+        return edge
 
     def filter_nodes(self, query=None, **kwargs):
         if not query:
@@ -111,8 +127,8 @@ class MetaGraph:
 
     def remove_node(self, node, remove_submeta=False, recursive=False):
         """
-        Remove node. Must remove node adjacent edges,
-        edgenodes and edgenodes adjacent edges.
+        Remove node. Must remove node adjacent edges to metanodes,
+        edgenodes and edgenodes edges to metanodes.
         :param remove_submeta: remove content of metanode
         :param recursive: remove content of submetanodes
         """
@@ -121,65 +137,25 @@ class MetaGraph:
 
         node_key = self._to_key(node)
 
-        # Removing node key from supermeta nodes
         aql = '''
-            FOR e IN Nodes FILTER e._key == '{node_key}'
-                FOR supermeta_key in e._supermeta OR []
-                    FOR supermeta_node IN {nodes_collection} 
-                    FILTER supermeta_node._key == supermeta_key
-                        UPDATE supermeta_node 
-                        WITH {{ _submeta: REMOVE_VALUE(supermeta_node._submeta, e._key)}} 
-                        IN {nodes_collection}
-        '''.format(
-            node_key=node_key,
-            nodes_collection=self.NODES_COLL
-        )
-        self._run_aql(aql)
-
-        if not remove_submeta:
-            # If not removing submeta node, remove link from them
-            aql = '''
-                FOR e IN Nodes FILTER e._key == '{node_key}'
-                    FOR submeta_key in e._submeta OR []
-                        FOR submeta_node IN {nodes_collection} 
-                        FILTER submeta_node._key == submeta_key
-                            UPDATE submeta_node 
-                            WITH {{ _supermeta: REMOVE_VALUE(submeta_node._supermeta, e._key)}} 
-                            IN {nodes_collection}
-            '''.format(
-                node_key=node_key,
-                nodes_collection=self.NODES_COLL
-            )
-            self._run_aql(aql)
-
-        # Removing adjacent edges
-        aql = '''
-            FOR e IN {edgenodes_collection} 
-            FILTER e.from=='{node_id}' OR e.to=='{node_id}' 
-            REMOVE e IN {edgenodes_collection} 
+            FOR e in {edgenodes_collection} FILTER e.from=='{node_id}' OR e.to=='{node_id}' RETURN e
         '''.format(
             edgenodes_collection=self.EDGENODE_COLL,
             node_id=key_to_id(self.NODES_COLL, node_key),
         )
-        self._run_aql(aql)
+        edge_nodes = self._run_aql(aql)
+        for edge_node in edge_nodes:  # TODO optimizable
+            self._remove_internal_node(edge_node._key)
 
-        # Removing node content
+        # TODO документная база бахала, когда удалял метаноду с
+        # двумя вложенными нодами, и ноды удалялись раньше связи
+
         if remove_submeta:
-            node_content = self.nodes[node_key][self.META_ATTR] or []
+            pass
+            # self._remove_submeta_nodes(node, recursive_removal=recursive)
 
-            for subnode in node_content:
-                self.remove_node(subnode, remove_submeta=recursive, recursive=recursive)
+        self._remove_internal_node(node_key)
 
-        # Removing node
-        # 'REMOVE key IN collection' raises exception if key not present. Is it faster?
-        aql = '''
-            FOR n IN {node_collection}
-            FILTER n._key == '{node_key}'
-            REMOVE n IN {node_collection}
-        '''.format(
-            node_key=node_key,
-            node_collection=self.NODES_COLL
-        )
         self._run_aql(aql)
 
     def remove_from_metanode(self, node, metanode):
@@ -239,6 +215,28 @@ class MetaGraph:
             nodes_collection=self.NODES_COLL
         )
         self._run_aql(aql)
+
+    def _remove_internal_node(self, node_key):
+        """
+        Remove internal node and its edges.
+        """
+        # Automatic removal of adjacent edges is
+        # probably not supported in Arango yet
+        _aql = '''
+            LET removed_inbound = (
+                FOR v, e IN 1..1 ANY '{node_id}' GRAPH '{graph}' 
+                REMOVE e._key IN {edges_collection}
+            )
+            REMOVE '{node_key}' IN {nodes_collection}
+        '''.format(
+            node_id=key_to_id(self.NODES_COLL, node_key),
+            graph=self.GRAPH,
+            submeta_label=self.METAEDGE_LABEL,
+            edges_collection=self.EDGES_COLL, # TODO ???
+            nodes_collection=self.NODES_COLL,
+            node_key=node_key
+        )
+        self._run_aql(_aql)
 
     def _build_query_string(self, **kwargs):
         query = ''

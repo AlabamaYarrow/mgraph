@@ -4,6 +4,15 @@ from arango_graph.settings import USERNAME, PASSWORD, DB_NAME, DEBUG
 
 # TODO effect of rawResults=True  batchSize=100 for AQLQuery()
 
+"""
+NB: Creating edge collection and graph
+        var graph_module = require("org/arangodb/general-graph");
+        var edgeDefinitions = [{
+            collection: "NodesConnections", from: [ "Nodes" ], to : [ "Nodes" ]
+        }];
+        graph = graph_module._create("NodesGraph", edgeDefinitions);
+"""
+
 
 def key_to_id(coll, key):
     return '{}/{}'.format(coll, key)
@@ -129,7 +138,7 @@ class MetaGraph:
             node_id=key_to_id(self.NODES_COLL, node_key),
         )
         edge_nodes = self._run_aql(aql)
-        for edge_node in edge_nodes:
+        for edge_node in edge_nodes:  # TODO optimizable
             self._remove_internal_node(edge_node._key)
 
         # TODO документная база бахала, когда удалял метаноду с
