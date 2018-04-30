@@ -257,18 +257,20 @@ class MetaGraph:
 
 def main():
     m = MetaGraph()
-    m.truncate()
+    # m.truncate()
 
-    n1 = m.add_node(nid='v1', name='vertex1')
-    n2 = m.add_node(nid='v2', name='vertex2')
-    mv1 = m.add_node(nid='mv1', name='metavertex1')
-    #
-    e12 = m.add_edge(n1, n2, eid='e12', name='edge12')
-    #
-    m.add_to_metanode(n1, mv1)
 
-    m.add_to_metanode(n2, mv1)
-    m.add_to_metanode(e12, mv1)
+
+    # n1 = m.add_node(nid='v1', name='vertex1')
+    # n2 = m.add_node(nid='v2', name='vertex2')
+    # mv1 = m.add_node(nid='mv1', name='metavertex1')
+    # #
+    # e12 = m.add_edge(n1, n2, eid='e12', name='edge12')
+    # #
+    # m.add_to_metanode(n1, mv1)
+    #
+    # m.add_to_metanode(n2, mv1)
+    # m.add_to_metanode(e12, mv1)
 
     # n1 = m.add_node(name='V1', nid='1', some_key='hahaha', some_key_2=123)
 
