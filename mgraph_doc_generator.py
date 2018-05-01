@@ -1,3 +1,4 @@
+import json
 import random
 
 from arango_graph.metagraph import key_to_id, MetaGraph
@@ -87,14 +88,14 @@ def _add_submetas(f, meta_nid, depth):
 
         submeta_keys = []
         if depth:
-            submeta_keys = ['{}-{}'.format(sub_nid, j) for j in range(1, meta_width + 1)]
+            submeta_keys = json.dumps(["{}-{}".format(sub_nid, j) for j in range(1, meta_width + 1)])
 
         f.write(
             '{{ "_key": "{meta_nid}","int_attr":{int_attr},"str_attr":"{str_attr}",'
             '"_submeta":{__submeta},"_supermeta":{__supermeta} }}\n'.format(
                 meta_nid=sub_nid, int_attr=int_attr, str_attr=str_attr,
                 __submeta=submeta_keys,
-                __supermeta=[meta_nid]
+                __supermeta=json.dumps([meta_nid])
             )
         )
 
@@ -109,7 +110,7 @@ def write_metas():
             int_attr = random.randint(1, 100)
             str_attr = 'attr_{}'.format(random.randint(1, 100))
 
-            submeta_keys = ['{}-{}'.format(meta_nid, j) for j in range(1, meta_width + 1)]
+            submeta_keys = json.dumps(["{}-{}".format(meta_nid, j) for j in range(1, meta_width + 1)])
 
             f.write(
                 '{{ "_key": "{meta_nid}","int_attr":{int_attr},"str_attr":"{str_attr}",'

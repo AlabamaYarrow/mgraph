@@ -1,8 +1,0 @@
-{ "_key": "v1","int_attr":36,"str_attr":"attr_84" }
-{ "_key": "m1","int_attr":14,"str_attr":"attr_66","_submeta":['m1-1', 'm1-2'],"_supermeta":[] }
-{ "_key": "m1-1","int_attr":90,"str_attr":"attr_9","_submeta":['m1-1-1', 'm1-1-2'],"_supermeta":['m1'] }
-{ "_key": "m1-1-1","int_attr":94,"str_attr":"attr_9","_submeta":[],"_supermeta":['m1-1'] }
-{ "_key": "m1-1-2","int_attr":19,"str_attr":"attr_30","_submeta":[],"_supermeta":['m1-1'] }
-{ "_key": "m1-2","int_attr":38,"str_attr":"attr_22","_submeta":['m1-2-1', 'm1-2-2'],"_supermeta":['m1'] }
-{ "_key": "m1-2-1","int_attr":88,"str_attr":"attr_95","_submeta":[],"_supermeta":['m1-2'] }
-{ "_key": "m1-2-2","int_attr":14,"str_attr":"attr_18","_submeta":[],"_supermeta":['m1-2'] }

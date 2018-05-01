@@ -1,4 +1,5 @@
 *.csv
+*.json
 data/
 .idea/
 __pycache__/
