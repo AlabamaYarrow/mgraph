@@ -25,13 +25,13 @@ graph_file = 'graph_edges.csv'
 
 def write_headers():
     with open(nodes_file, 'w') as f:
-        f.write('"{}";"{}";"{}"\n'.format('_key', 'int_attr', 'str_attr'))
+        f.write('"_key";"int_attr";"str_attr"\n')
 
     with open(edgenodes_file, 'w') as f:
-        f.write('"{}";"{}";"{}";"{}";"{}"\n'.format('_key', 'int_attr', 'str_attr', 'from', 'to'))
+        f.write('"_key";"int_attr";"str_attr";"from";"to"\n')
 
     with open(graph_file, 'w') as f:
-        f.write('"{}";"{}";"{}"\n'.format('_from', '_to', 'submeta'))
+        f.write('"_from";"_to";"submeta"\n')
 
 
 def write_nodes():
