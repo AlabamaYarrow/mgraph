@@ -1,6 +1,8 @@
 import json
 import random
 
+import sys
+
 from arango_graph.metagraph import key_to_id, MetaGraph
 
 
@@ -14,9 +16,9 @@ _10M = 10000000
 total_nodes = _10M
 total_edges = _10M
 
-total_metanodes = 0
-meta_width = 0
-meta_depth = 0
+TOTAL_METANODES = 0
+META_WIDTH = 0
+META_DEPTH = 0
 
 
 nodes_file = 'doc-nodes.json'
@@ -75,7 +77,7 @@ def write_edges():
             )
 
 
-def _add_submetas(f, meta_nid, depth):
+def _add_submetas(f, meta_nid, depth, meta_width):
     if not depth:
         return
 
@@ -99,12 +101,12 @@ def _add_submetas(f, meta_nid, depth):
             )
         )
 
-        _add_submetas(f, sub_nid, depth)
+        _add_submetas(f, sub_nid, depth, meta_width)
 
 
-def write_metas():
+def write_metas(start_metanid=1, total_metanodes=TOTAL_METANODES, meta_width=META_WIDTH, meta_depth=META_DEPTH):
     with open(nodes_file, 'a+') as f:
-        for x in range(1, total_metanodes + 1):
+        for x in range(start_metanid, start_metanid+total_metanodes + 1):
             meta_nid = 'm{}'.format(1)
 
             int_attr = random.randint(1, 100)
@@ -121,12 +123,24 @@ def write_metas():
                 )
             )
 
-            _add_submetas(f, meta_nid, meta_depth)
+            _add_submetas(f, meta_nid, meta_depth, meta_width)
 
 
 if __name__ == '__main__':
     trunc_files()
 
-    write_nodes()
-    write_edges()
-    write_metas()
+    # write_nodes()
+    # write_edges()
+
+    sys.setrecursionlimit(20000)  # sorry Python :(
+
+    write_metas(start_metanid=1, total_metanodes=10, meta_width=10, meta_depth=1)
+    write_metas(start_metanid=100, total_metanodes=10, meta_width=100, meta_depth=1)
+    write_metas(start_metanid=200, total_metanodes=10, meta_width=1000, meta_depth=1)
+    write_metas(start_metanid=300, total_metanodes=1, meta_width=10000, meta_depth=1)
+
+    write_metas(start_metanid=400, total_metanodes=10, meta_width=1, meta_depth=10)
+    write_metas(start_metanid=500, total_metanodes=10, meta_width=1, meta_depth=100)
+    write_metas(start_metanid=600, total_metanodes=10, meta_width=1, meta_depth=1000)
+    write_metas(start_metanid=700, total_metanodes=1, meta_width=1, meta_depth=10000)
+
