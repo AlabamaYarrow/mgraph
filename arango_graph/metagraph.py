@@ -14,10 +14,6 @@ NB: Creating edge collection and graph
 """
 
 
-def key_to_id(coll, key):
-    return '{}/{}'.format(coll, key)
-
-
 # noinspection PyProtectedMember
 class MetaGraph:
     """
@@ -82,8 +78,8 @@ class MetaGraph:
     def add_edge(self, from_node, to_node, **kwargs):
         edge_node = self.edges_nodes.createDocument()
         edge_node._key = kwargs['eid']
-        edge_node['from'] = key_to_id(self.NODES_COLL, self._to_key(from_node))
-        edge_node['to'] = key_to_id(self.NODES_COLL, self._to_key(to_node))
+        edge_node['from'] = self.key_to_id(self._to_key(from_node))
+        edge_node['to'] = self.key_to_id(self._to_key(to_node))
         for k, v in kwargs.items():
             edge_node[k] = v
         edge_node.save()
@@ -138,14 +134,14 @@ class MetaGraph:
             FOR e in {edgenodes_collection} FILTER e.from=='{node_id}' OR e.to=='{node_id}' RETURN e
         '''.format(
             edgenodes_collection=self.EDGENODE_COLL,
-            node_id=key_to_id(self.NODES_COLL, node_key),
+            node_id=self.key_to_id(node_key),
         )
         edge_nodes = self._run_aql(aql)
         for edge_node in edge_nodes:  # TODO optimizable
             self._remove_internal_node(edge_node._key)
 
-        # TODO документная база бахала, когда удалял метаноду с
-        # двумя вложенными нодами, и ноды удалялись раньше связи
+        # TODO документная база бахала, при удалении метаноды с
+        # двумя вложенными нодами (ноды удалялись раньше связи?)
 
         if remove_submeta:
             self._remove_submeta_nodes(node, recursive_removal=recursive)
@@ -161,8 +157,8 @@ class MetaGraph:
             REMOVE e IN {edges_collection}
         '''.format(
             edges_collection=self.EDGES_COLL,
-            node_id=key_to_id(self.NODES_COLL, node_key),
-            metanode_id=key_to_id(self.NODES_COLL, metanode_key)
+            node_id=self.key_to_id(node_key),
+            metanode_id=self.key_to_id(metanode_key)
         )
         self._run_aql(aql)
 
@@ -175,7 +171,7 @@ class MetaGraph:
             RETURN n
         '''.format(
             max_depth=self.MAX_DEPTH,
-            node_id=key_to_id(self.NODES_COLL, self._to_key(node)),
+            node_id=self.key_to_id(self._to_key(node)),
             edges_collection=self.EDGES_COLL,
             submeta_label=self.METAEDGE_LABEL
         )
@@ -190,8 +186,8 @@ class MetaGraph:
         edges_coll = self.meta_edges if submeta else self.edges
         edge = edges_coll.createDocument()
 
-        edge._from = key_to_id(self.NODES_COLL, self._to_key(from_node))
-        edge._to = key_to_id(self.NODES_COLL, self._to_key(to_node))
+        edge._from = self.key_to_id(self._to_key(from_node))
+        edge._to = self.key_to_id(self._to_key(to_node))
         if submeta:
             edge[self.METAEDGE_LABEL] = True
         edge.save()
@@ -213,7 +209,7 @@ class MetaGraph:
             )
             REMOVE '{node_key}' IN {nodes_collection}
         '''.format(
-            node_id=key_to_id(self.NODES_COLL, node_key),
+            node_id=self.key_to_id(node_key),
             graph=self.GRAPH,
             submeta_label=self.METAEDGE_LABEL,
             edges_collection=self.EDGES_COLL,
@@ -235,7 +231,8 @@ class MetaGraph:
         for submeta in submeta_nodes:
             self.remove_node(submeta, remove_submeta=remove_submeta, recursive=recursive)
 
-    def _build_query_string(self, **kwargs):
+    @staticmethod
+    def _build_query_string(**kwargs):
         query = ''
         for i, (k, v) in enumerate(kwargs.items()):
             if type(v) is str:
@@ -247,11 +244,16 @@ class MetaGraph:
                 query += ' AND '
         return query
 
-    def _to_key(self, node):
+    @staticmethod
+    def _to_key(node):
         if type(node) is str:
             return node
         else:
             return node._key
+
+    @staticmethod
+    def key_to_id(key, coll=NODES_COLL):
+        return '{}/{}'.format(coll, key)
 
     def _run_aql(self, aql):
         if DEBUG:

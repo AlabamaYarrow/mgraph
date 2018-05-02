@@ -1,9 +1,7 @@
+import sys
 from pyArango.connection import Connection
 from arango_doc.settings import USERNAME, PASSWORD, DB_NAME, DEBUG
 
-
-def key_to_id(coll, key):
-    return '{}/{}'.format(coll, key)
 
 """
 NB: edgenodes collection requires 
@@ -70,8 +68,8 @@ class MetaGraph:
         edge_node = self.edges_nodes.createDocument()
         edge_node._key = kwargs['eid']
         del kwargs['eid']
-        edge_node['from'] = key_to_id(self.NODES_COLL, self._to_key(from_node))
-        edge_node['to'] = key_to_id(self.NODES_COLL, self._to_key(to_node))
+        edge_node['from'] = self.key_to_id(self._to_key(from_node))
+        edge_node['to'] = self.key_to_id(self._to_key(to_node))
         for k, v in kwargs.items():
             edge_node[k] = v
         edge_node.save()
@@ -160,7 +158,7 @@ class MetaGraph:
             REMOVE e IN {edgenodes_collection} 
         '''.format(
             edgenodes_collection=self.EDGENODE_COLL,
-            node_id=key_to_id(self.NODES_COLL, node_key),
+            node_id=self.key_to_id(node_key),
         )
         self._run_aql(aql)
 
@@ -214,6 +212,7 @@ class MetaGraph:
         self._run_aql(aql)
 
     def get_submeta_nodes(self, node):
+        sys.setrecursionlimit(20000)  # TODO removeme ???
         submeta_nodes = []
 
         def _get_submetas(_submeta_nodes, _node):
@@ -244,7 +243,7 @@ class MetaGraph:
             UPDATE node_doc WITH {{ {list_name}: PUSH(node_doc.{list_name}, '{added_node_key}') }}
             IN {nodes_collection}
         '''.format(
-            node_id=key_to_id(self.NODES_COLL, self._to_key(node)),
+            node_id=self.key_to_id(self._to_key(node)),
             list_name=list_name,
             added_node_key=self._to_key(added_node),
             nodes_collection=self.NODES_COLL
@@ -268,6 +267,9 @@ class MetaGraph:
             return node
         else:
             return node._key
+
+    def key_to_id(self, key, coll=NODES_COLL):
+        return '{}/{}'.format(coll, key)
 
     def _run_aql(self, aql):
         if DEBUG:
@@ -322,7 +324,6 @@ def main():
     # m.remove_from_metanode(mv1, mv2)
 
     # m.remove_node(mv3, remove_submeta=True, recursive=True)
-
 
 
 if __name__ == '__main__':
