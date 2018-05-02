@@ -121,7 +121,66 @@ class MetaGraph:
         node_key = self._to_key(node)
 
         # Removing node key from supermeta nodes
-        aql = '''
+        aql = self._get_remove_from_supermeta_aql(node_key)
+        self._run_aql(aql)
+
+        if not remove_submeta:
+            # If not removing submeta node, remove link from them
+            aql = self._get_remove_from_submeta_aql(node_key)
+            self._run_aql(aql)
+
+        # Removing adjacent edges
+        aql = self._get_remove_adjacent_edges_aql(node_key)
+        self._run_aql(aql)
+
+        # Removing node content
+        if remove_submeta:
+            node_content = self.nodes[node_key][self.META_ATTR] or []
+
+            for subnode in node_content:
+                self.remove_node(subnode, remove_submeta=recursive, recursive=recursive)
+
+        # Removing node
+        aql = self._get_remove_node_aql(node_key)
+        self._run_aql(aql)
+
+    def _get_remove_node_aql(self, node_key):
+        # 'REMOVE key IN collection' raises exception if key not present. Is it faster?
+        return '''
+            FOR n IN {node_collection}
+            FILTER n._key == '{node_key}'
+            REMOVE n IN {node_collection}
+        '''.format(
+            node_key=node_key,
+            node_collection=self.NODES_COLL
+        )
+
+    def _get_remove_adjacent_edges_aql(self, node_key):
+        return '''
+            FOR e IN {edgenodes_collection} 
+            FILTER e.from=='{node_id}' OR e.to=='{node_id}' 
+            REMOVE e IN {edgenodes_collection} 
+        '''.format(
+            edgenodes_collection=self.EDGENODE_COLL,
+            node_id=self.key_to_id(node_key),
+        )
+
+    def _get_remove_from_submeta_aql(self, node_key):
+        return '''
+                FOR e IN Nodes FILTER e._key == '{node_key}'
+                    FOR submeta_key in e._submeta OR []
+                        FOR submeta_node IN {nodes_collection} 
+                        FILTER submeta_node._key == submeta_key
+                            UPDATE submeta_node 
+                            WITH {{ _supermeta: REMOVE_VALUE(submeta_node._supermeta, e._key)}} 
+                            IN {nodes_collection}
+            '''.format(
+            node_key=node_key,
+            nodes_collection=self.NODES_COLL
+        )
+
+    def _get_remove_from_supermeta_aql(self, node_key):
+        return '''
             FOR e IN Nodes FILTER e._key == '{node_key}'
                 FOR supermeta_key in e._supermeta OR []
                     FOR supermeta_node IN {nodes_collection} 
@@ -133,53 +192,6 @@ class MetaGraph:
             node_key=node_key,
             nodes_collection=self.NODES_COLL
         )
-        self._run_aql(aql)
-
-        if not remove_submeta:
-            # If not removing submeta node, remove link from them
-            aql = '''
-                FOR e IN Nodes FILTER e._key == '{node_key}'
-                    FOR submeta_key in e._submeta OR []
-                        FOR submeta_node IN {nodes_collection} 
-                        FILTER submeta_node._key == submeta_key
-                            UPDATE submeta_node 
-                            WITH {{ _supermeta: REMOVE_VALUE(submeta_node._supermeta, e._key)}} 
-                            IN {nodes_collection}
-            '''.format(
-                node_key=node_key,
-                nodes_collection=self.NODES_COLL
-            )
-            self._run_aql(aql)
-
-        # Removing adjacent edges
-        aql = '''
-            FOR e IN {edgenodes_collection} 
-            FILTER e.from=='{node_id}' OR e.to=='{node_id}' 
-            REMOVE e IN {edgenodes_collection} 
-        '''.format(
-            edgenodes_collection=self.EDGENODE_COLL,
-            node_id=self.key_to_id(node_key),
-        )
-        self._run_aql(aql)
-
-        # Removing node content
-        if remove_submeta:
-            node_content = self.nodes[node_key][self.META_ATTR] or []
-
-            for subnode in node_content:
-                self.remove_node(subnode, remove_submeta=recursive, recursive=recursive)
-
-        # Removing node
-        # 'REMOVE key IN collection' raises exception if key not present. Is it faster?
-        aql = '''
-            FOR n IN {node_collection}
-            FILTER n._key == '{node_key}'
-            REMOVE n IN {node_collection}
-        '''.format(
-            node_key=node_key,
-            node_collection=self.NODES_COLL
-        )
-        self._run_aql(aql)
 
     def remove_from_metanode(self, node, metanode):
         node_key = self._to_key(node)
@@ -212,7 +224,7 @@ class MetaGraph:
         self._run_aql(aql)
 
     def get_submeta_nodes_recursive(self, node):
-        sys.setrecursionlimit(20000)
+        # sys.setrecursionlimit(20000)
         submeta_nodes = []
 
         def _get_submetas(_submeta_nodes, _node):
