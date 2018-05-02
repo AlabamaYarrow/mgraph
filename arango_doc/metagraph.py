@@ -214,19 +214,29 @@ class MetaGraph:
         self._run_aql(aql)
 
     def get_submeta_nodes(self, node):
-        node_key = self._to_key(node)
-        aql = '''
-            FOR e IN Nodes FILTER e._key == '{node_key}'
-                FOR submeta_key in e._submeta OR []
-                    FOR node IN {nodes_collection} 
-                    FILTER node._key == submeta_key
-                        RETURN node
-        '''.format(
-            node_key=node_key,
-            nodes_collection=self.NODES_COLL
-        )
-        # TODO recursion?
-        return self._run_aql(aql)
+        submeta_nodes = []
+
+        def _get_submetas(_submeta_nodes, _node):
+            node_key = self._to_key(_node)
+            aql = '''
+                FOR e IN Nodes FILTER e._key == '{node_key}'
+                    FOR submeta_key in e._submeta OR []
+                        FOR node IN {nodes_collection} 
+                        FILTER node._key == submeta_key
+                            RETURN node
+            '''.format(
+                node_key=node_key,
+                nodes_collection=self.NODES_COLL
+            )
+
+            nodes = self._run_aql(aql)
+            _submeta_nodes.extend(nodes)
+            for sub_node in nodes:
+                _get_submetas(_submeta_nodes, sub_node)
+
+        _get_submetas(submeta_nodes, node)
+
+        return submeta_nodes
 
     def _add_to_list(self, node, added_node, list_name):
         aql = '''
@@ -268,17 +278,28 @@ class MetaGraph:
 def main():
     m = MetaGraph()
     m.truncate()
-    #
-    n1 = m.add_node(nid='v1', name='vertex1')
-    n2 = m.add_node(nid='v2', name='vertex2')
-    mv1 = m.add_node(nid='mv1', name='metavertex1')
-    #
-    e12 = m.add_edge(n1, n2, eid='e12', name='edge12')
-    #
-    m.add_to_metanode(n1, mv1)
 
-    m.add_to_metanode(n2, mv1)
-    m.add_to_metanode(e12, mv1)
+    mv1 = m.add_node(nid='mv1', name='metavertex1')
+    mv2 = m.add_node(nid='mv2', name='metavertex2')
+    mv3 = m.add_node(nid='mv3', name='metavertex3')
+    e32 = m.add_edge(mv3, mv2, eid='e12', name='edge12')
+
+    m.add_to_metanode(mv3, mv2)
+    m.add_to_metanode(mv2, mv1)
+    m.add_to_metanode(e32, mv1)
+
+    print(m.get_submeta_nodes(mv1))
+
+    # n1 = m.add_node(nid='v1', name='vertex1')
+    # n2 = m.add_node(nid='v2', name='vertex2')
+    # mv1 = m.add_node(nid='mv1', name='metavertex1')
+    #
+    # e12 = m.add_edge(n1, n2, eid='e12', name='edge12')
+    #
+    # m.add_to_metanode(n1, mv1)
+    #
+    # m.add_to_metanode(n2, mv1)
+    # m.add_to_metanode(e12, mv1)
 
     # m.remove_node(mv1)
     #

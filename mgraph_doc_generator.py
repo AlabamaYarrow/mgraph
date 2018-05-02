@@ -11,12 +11,12 @@ _1M = 1000000
 _10M = 10000000
 
 
-total_nodes = 1
-total_edges = 1
+total_nodes = _10M
+total_edges = _10M
 
-total_metanodes = 1
-meta_width = 2
-meta_depth = 2
+total_metanodes = 0
+meta_width = 0
+meta_depth = 0
 
 
 nodes_file = 'doc-nodes.json'
