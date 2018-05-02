@@ -36,6 +36,9 @@ class MetaGraph:
 
     METAEDGE_LABEL = 'submeta'
 
+    # Arango doesn't support unlimited depth traversal
+    MAX_DEPTH = 100000
+
     def __init__(self):
         conn = Connection(username=USERNAME, password=PASSWORD)
         self.db = conn[DB_NAME]
@@ -167,15 +170,16 @@ class MetaGraph:
 
     def get_submeta_nodes(self, node):
         aql = '''
-            FOR n,e IN 1..1 INBOUND '{node_id}' {edges_collection}
-            FILTER e.{submeta_label} == True
+            FOR n,e,p IN 1..{max_depth} INBOUND '{node_id}' {edges_collection}
+            FILTER p.edges[*].{submeta_label} ALL == true
             RETURN n
         '''.format(
+            max_depth=self.MAX_DEPTH,
             node_id=key_to_id(self.NODES_COLL, self._to_key(node)),
             edges_collection=self.EDGES_COLL,
             submeta_label=self.METAEDGE_LABEL
         )
-        # TODO recursion?
+
         return self._run_aql(aql)
 
     def _add_edge(self, from_node, to_node, submeta=False):
@@ -257,8 +261,23 @@ class MetaGraph:
 
 def main():
     m = MetaGraph()
-    # m.truncate()
-
+    m.truncate()
+    #
+    # mv1 = m.add_node(nid='mv1', name='metavertex1')
+    # mv2 = m.add_node(nid='mv2', name='metavertex2')
+    # mv3 = m.add_node(nid='mv3', name='metavertex3')
+    # mv4 = m.add_node(nid='mv4', name='metavertex4')
+    # e32 = m.add_edge(mv3, mv2, eid='e12', name='edge12')
+    # e34 = m.add_edge(mv3, mv4, eid='e34', name='edge34')
+    #
+    # m.add_to_metanode(mv4, mv3)
+    # m.add_to_metanode(mv3, mv2)
+    # m.add_to_metanode(mv2, mv1)
+    # m.add_to_metanode(e32, mv1)
+    # m.add_to_metanode(e34, mv3)
+    #
+    # for node in m.get_submeta_nodes(mv1):
+    #     print(node['name'])
 
 
     # n1 = m.add_node(nid='v1', name='vertex1')
