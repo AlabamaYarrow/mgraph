@@ -125,7 +125,7 @@ def main():
 
     print(meta_nids_doc)
 
-    print(len(m.get_submeta_nodes('m80')))
+    print(len(m.get_submeta_nodes('m31')))
 
     # for (width, depth), nids in meta_nids_doc.items():
     #

@@ -211,8 +211,8 @@ class MetaGraph:
         )
         self._run_aql(aql)
 
-    def get_submeta_nodes(self, node):
-        sys.setrecursionlimit(20000)  # TODO removeme ???
+    def get_submeta_nodes_recursive(self, node):
+        sys.setrecursionlimit(20000)
         submeta_nodes = []
 
         def _get_submetas(_submeta_nodes, _node):
@@ -234,6 +234,35 @@ class MetaGraph:
                 _get_submetas(_submeta_nodes, sub_node)
 
         _get_submetas(submeta_nodes, node)
+
+        return submeta_nodes
+
+    def get_submeta_nodes(self, node):
+        def _get_submetas(_node):
+            node_key = self._to_key(_node)
+            aql = '''
+                FOR e IN Nodes FILTER e._key == '{node_key}'
+                    FOR submeta_key in e._submeta OR []
+                        FOR node IN {nodes_collection} 
+                        FILTER node._key == submeta_key
+                            RETURN node
+            '''.format(
+                node_key=node_key,
+                nodes_collection=self.NODES_COLL
+            )
+
+            return self._run_aql(aql)
+
+        submeta_nodes = []
+        nodes_to_visit = []
+
+        while True:
+            node_submetas = _get_submetas(node)
+            submeta_nodes.extend(node_submetas)
+            nodes_to_visit.extend(node_submetas)
+            if not nodes_to_visit:
+                break
+            node = nodes_to_visit.pop()
 
         return submeta_nodes
 
@@ -266,7 +295,7 @@ class MetaGraph:
         if type(node) is str:
             return node
         else:
-            return node._key
+            return node['_key']
 
     def key_to_id(self, key, coll=NODES_COLL):
         return '{}/{}'.format(coll, key)
