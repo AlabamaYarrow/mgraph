@@ -108,41 +108,42 @@ class MetaGraph:
             edge[k] = v
         edge.save()
 
-    def remove_node(self, node, remove_submeta=False, recursive=False):
+    def remove_node(self, node, remove_submeta=False):
         """
         Remove node. Must remove node adjacent edges,
         edgenodes and edgenodes adjacent edges.
         :param remove_submeta: remove content of metanode
-        :param recursive: remove content of submetanodes
         """
-        if recursive and not remove_submeta:
-            raise ValueError('Recursive removal only allowed when removing submeta')
-
         node_key = self._to_key(node)
 
-        # Removing node key from supermeta nodes
-        aql = self._get_remove_from_supermeta_aql(node_key)
-        self._run_aql(aql)
-
-        if not remove_submeta:
-            # If not removing submeta node, remove link from them
-            aql = self._get_remove_from_submeta_aql(node_key)
+        def _remove_node(_node_key, _remove_submeta):
+            # Removing node key from supermeta nodes
+            aql = self._get_remove_from_supermeta_aql(_node_key)
             self._run_aql(aql)
 
-        # Removing adjacent edges
-        aql = self._get_remove_adjacent_edges_aql(node_key)
-        self._run_aql(aql)
+            if not _remove_submeta:
+                # If not removing submeta node, remove link from them
+                aql = self._get_remove_from_submeta_aql(_node_key)
+                self._run_aql(aql)
+
+            # Removing adjacent edges
+            aql = self._get_remove_adjacent_edges_aql(_node_key)
+            self._run_aql(aql)
+
+            # Removing node
+            aql = self._get_remove_node_aql(_node_key)
+            self._run_aql(aql)
 
         # Removing node content
         if remove_submeta:
-            node_content = self.nodes[node_key][self.META_ATTR] or []
+            nodes_to_remove = self.nodes[node_key][self.META_ATTR] or []
 
-            for subnode in node_content:
-                self.remove_node(subnode, remove_submeta=recursive, recursive=recursive)
+            while nodes_to_remove:
+                curr_node_key = nodes_to_remove.pop()
+                nodes_to_remove.extend(self.nodes[curr_node_key][self.META_ATTR] or [])
+                _remove_node(curr_node_key, _remove_submeta=False)
 
-        # Removing node
-        aql = self._get_remove_node_aql(node_key)
-        self._run_aql(aql)
+        _remove_node(node_key, _remove_submeta=False)
 
     def _get_remove_node_aql(self, node_key):
         # 'REMOVE key IN collection' raises exception if key not present. Is it faster?
@@ -332,6 +333,7 @@ def main():
     m.add_to_metanode(e32, mv1)
 
     print(m.get_submeta_nodes(mv1))
+    print(m.remove_node(mv1, remove_submeta=True))
 
     # n1 = m.add_node(nid='v1', name='vertex1')
     # n2 = m.add_node(nid='v2', name='vertex2')
