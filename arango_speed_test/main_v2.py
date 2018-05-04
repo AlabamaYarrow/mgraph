@@ -40,17 +40,34 @@ def test_add():
     print_debug("Total --- %s seconds ---" % total_time, True)
     print_debug("Avg --- %s seconds ---" % (total_time / total_nodes), True)
 
-    """
-    100k
-    
-    1M
-    Total --- 0.22845983505249023 seconds ---
-    Avg --- 0.002284598350524902 seconds ---
-    
-    10M
-    ?
-    """
 
+def test_get_submeta():
+    m = DMetaGraph()
+
+    # global meta_nids_doc
+    # print(meta_nids_doc)
+    # with open('metanids.data', 'wb') as output:
+    #     pickle.dump(meta_nids_doc, output, pickle.HIGHEST_PROTOCOL)
+    # with open('metanids.data', 'rb') as input:
+    #     meta_nids_doc = pickle.load(input)
+
+    for (width, depth), nids in meta_nids_doc.items():
+
+        total_nodes = len(nids)
+
+        nids = ['m{}'.format(nid) for nid in nids]
+
+        start_time = time.time()
+        for nid in nids:
+            nodes = m.get_submeta_nodes(nid)
+
+            print(len(nodes), width, depth)
+            assert len(nodes) == width * depth
+
+        total_time = time.time() - start_time
+        print_debug("Getting sub meta nodes with width {} and depth {}".format(width, depth), True)
+        print_debug("Total --- %s seconds ---" % total_time, True)
+        print_debug("Avg --- %s seconds ---" % (total_time / total_nodes), True)
 
 # Remember ids of meta vertices in graph for test
 meta_nids_doc = {}
@@ -109,41 +126,13 @@ def init_graph_dump():
 
 def main():
     print('Starting test...')
-    # init_doc_dump()
-    # load_doc_dump()
+    init_doc_dump()
+    load_doc_dump()
 
-    m = DMetaGraph()
     # test_add()
-    global meta_nids_doc
-    print(meta_nids_doc)
-
-    # with open('metanids.data', 'wb') as output:
-    #     pickle.dump(meta_nids_doc, output, pickle.HIGHEST_PROTOCOL)
-
-    with open('metanids.data', 'rb') as input:
-        meta_nids_doc = pickle.load(input)
-
-    print(meta_nids_doc)
-
-    print(len(m.get_submeta_nodes('m31')))
-
-    # for (width, depth), nids in meta_nids_doc.items():
-    #
-    #     total_nodes = len(nids)
-    #
-    #     nids = ['m{}'.format(nid) for nid in nids]
-    #
-    #     start_time = time.time()
-    #     for nid in nids:
-    #         nodes = m.get_submeta_nodes(nid)
-    #
-    #         print(len(nodes), width, depth)
-    #         assert len(nodes) == width * depth
-    #
-    #     total_time = time.time() - start_time
-    #     print_debug("Getting sub meta nodes with width {} and depth {}".format(width, depth), True)
-    #     print_debug("Total --- %s seconds ---" % total_time, True)
-    #     print_debug("Avg --- %s seconds ---" % (total_time / total_nodes), True)
+    # test_get_submeta()
+    # test_remove_without_submeta()
+    # test_remove_submeta()
 
 
 if __name__ == '__main__':

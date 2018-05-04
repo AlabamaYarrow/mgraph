@@ -24,7 +24,6 @@ META_DEPTH = 0
 
 nodes_file = os.path.join(DUMPS_DIR, 'doc', 'doc-nodes.json')
 edgenodes_file = os.path.join(DUMPS_DIR, 'doc', 'doc-edgenodes.json')
-    # TODO removeme same for graph
 
 
 def trunc_files():
