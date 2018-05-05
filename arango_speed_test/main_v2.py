@@ -2,6 +2,7 @@ import os
 import pickle
 import subprocess
 import time
+from collections import OrderedDict
 
 import settings
 from arango_doc.metagraph import MetaGraph as DMetaGraph
@@ -26,6 +27,15 @@ logger = logging.getLogger()
 graphs = (DMetaGraph, GMetaGraph)
 
 
+def trim_time(_time):
+    return "{:.5f}".format(_time)
+
+
+def log_time(total_time, total_nodes):
+    logger.info("\tTotal \t%s seconds" % trim_time(total_time))
+    logger.info("\tAvg \t%s seconds" % trim_time(total_time / total_nodes))
+
+
 def test_add_nodes_and_edges(m):
     # Adding new edges:
     total_nodes = 100
@@ -37,8 +47,7 @@ def test_add_nodes_and_edges(m):
     for i in range(total_nodes):
         m.add_node(nid=nids[i])
     total_time = time.time() - start_time
-    logger.info("Total --- %s seconds ---" % total_time)
-    logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
+    log_time(total_time, total_nodes)
 
     # Adding new nodes:
     total_edges = total_nodes - 1
@@ -49,8 +58,7 @@ def test_add_nodes_and_edges(m):
     for i in range(total_edges):
         m.add_edge(eid=eids[i], from_node=nids[i], to_node=nids[i+1])
     total_time = time.time() - start_time
-    logger.info("Total --- %s seconds ---" % total_time)
-    logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
+    log_time(total_time, total_edges)
 
 
 def test_get_submeta(m, meta_nids):
@@ -64,7 +72,7 @@ def test_get_submeta(m, meta_nids):
     #     meta_nids_doc = pickle.load(input)
 
     for (width, depth), nids in meta_nids.items():
-        logger.info("Getting sub meta nodes with width {} and depth {}".format(width, depth))
+        logger.info("  getting content of metanode with width {} and depth {}".format(width, depth))
 
         total_nodes = len(nids)
 
@@ -78,14 +86,13 @@ def test_get_submeta(m, meta_nids):
                 assert len(nodes) == width * depth
 
         total_time = time.time() - start_time
-        logger.info("Total --- %s seconds ---" % total_time)
-        logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
+        log_time(total_time, total_nodes)
 
 
 def test_remove_metanodes_deep(m, meta_nids):
     logger.info('Testing removing metanodes with content')
     for (width, depth), nids in meta_nids.items():
-        logger.info("Removing node and sub meta nodes with width {} and depth {}".format(width, depth))
+        logger.info("  removing node and sub meta nodes with width {} and depth {}".format(width, depth))
 
         total_nodes = len(nids)
 
@@ -99,8 +106,7 @@ def test_remove_metanodes_deep(m, meta_nids):
                 assert not m.get_submeta_nodes(nid)
 
         total_time = time.time() - start_time
-        logger.info("Total --- %s seconds ---" % total_time)
-        logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
+        log_time(total_time, total_nodes)
 
 
 def test_remove_metanodes(m, meta_nids):
@@ -108,7 +114,7 @@ def test_remove_metanodes(m, meta_nids):
     for (width, depth), nids in meta_nids.items():
         if width == 1:
             continue
-        logger.info("Removing node without sumbeta,  width {}".format(width, depth))
+        logger.info("  removing node without sumbeta,  width {}".format(width, depth))
 
         total_nodes = len(nids)
 
@@ -119,13 +125,12 @@ def test_remove_metanodes(m, meta_nids):
             m.remove_node(nid, remove_submeta=False)
 
         total_time = time.time() - start_time
-        logger.info("Total --- %s seconds ---" % total_time)
-        logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
+        log_time(total_time, total_nodes)
 
 
 # Remember ids of meta vertices in graph for test
-meta_nids_doc = {}
-meta_nids_graph = {}
+meta_nids_doc = OrderedDict()
+meta_nids_graph = OrderedDict()
 NIDS_PER_TYPE = 10
 
 
@@ -154,22 +159,21 @@ def init_dump(graph_type):
 
     current_meta_nid = 1
     total_metanodes = NIDS_PER_TYPE
-    depth = 1
-    for width in [10, 100, 1000, 10000]:
-        # total_metanodes = NIDS_PER_TYPE if depth < 10000 else 1
-        meta_nids[(width, depth)] = list(
-            range(current_meta_nid, current_meta_nid + total_metanodes)
-        )
 
-        write_metas(
-            start_metanid=current_meta_nid, total_metanodes=total_metanodes,
-            meta_width=width, meta_depth=depth
-        )
-        current_meta_nid += total_metanodes
+    # (width - number of submetanodes for each node, depth - number of levels)
+    meta_configurations = (
+        (1, 10),
+        (1, 100),
+        # (1, 1000),
+        # (1, 10000),
 
-    width = 1
-    for depth in [10, 100, 1000, 10000]:
-        # total_metanodes = NIDS_PER_TYPE if width < 10000 else 1
+        (10, 1),
+        (100, 1),
+        # (1000, 1),
+        # (10000, 1),
+    )
+
+    for width, depth in meta_configurations:
         meta_nids[(width, depth)] = list(
             range(current_meta_nid, current_meta_nid + total_metanodes)
         )
@@ -194,18 +198,16 @@ def main():
     # init_doc_dump()
     # load_doc_dump()
 
-    # test_add()
-    # test_get_submeta()
-    # test_remove_without_submeta()
-    # test_remove_submeta()
+    # TODO remove nodes / edges
+    # TODO add / remove to metanodes
 
     logger.info('\n******DOCUMENT MODEL******')
     mgraph_doc = DMetaGraph()
     mgraph_doc.truncate()
     init_dump('doc')
     load_dump('doc')
-    # test_get_submeta(mgraph_doc, meta_nids_doc)
-    # test_add_nodes_and_edges(mgraph_doc)
+    test_get_submeta(mgraph_doc, meta_nids_doc)
+    test_add_nodes_and_edges(mgraph_doc)
     test_remove_metanodes(mgraph_doc, meta_nids_doc)
     mgraph_doc.truncate()
     load_dump('doc')
@@ -217,8 +219,8 @@ def main():
     init_dump('graph')
     load_dump('graph')
 
-    # test_get_submeta(mgraph_graph, meta_nids_graph)
-    # test_add_nodes_and_edges(mgraph_graph)
+    test_get_submeta(mgraph_graph, meta_nids_graph)
+    test_add_nodes_and_edges(mgraph_graph)
     test_remove_metanodes(mgraph_graph, meta_nids_graph)
     mgraph_graph.truncate()
     load_dump('graph')
