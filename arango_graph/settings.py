@@ -12,4 +12,4 @@ PASSWORD = config['passwd']
 DB_NAME = 'mgraph'
 
 
-DEBUG = True
+DEBUG = False

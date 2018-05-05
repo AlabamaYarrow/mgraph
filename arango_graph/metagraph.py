@@ -16,6 +16,7 @@ NB: Creating edge collection and graph
 """
 
 
+
 # noinspection PyProtectedMember
 class MetaGraph:
     """
@@ -36,6 +37,8 @@ class MetaGraph:
 
     # Arango doesn't support unlimited depth traversal
     MAX_DEPTH = 100000
+
+    MAX_BATCH_SIZE = 20000
 
     def __init__(self):
         conn = Connection(username=USERNAME, password=PASSWORD)
@@ -268,12 +271,20 @@ class MetaGraph:
     def _run_aql(self, aql):
         if DEBUG:
             print(aql)
-        return self.db.AQLQuery(aql)
+        return self.db.AQLQuery(aql, batchSize=self.MAX_BATCH_SIZE)
 
 
 def main():
     m = MetaGraph()
     m.truncate()
+    #
+    # mv1 = m.add_node(nid='m1')
+    #
+    # for x in range(1000):
+    #     node = m.add_node(nid=str(x))
+    #     m.add_to_metanode(node, mv1)
+    #
+    # print(len(m.get_submeta_nodes('m1')))
 
     # m.add_to_metanode(mv4, mv3)
     # m.add_to_metanode(mv3, mv2)
