@@ -3,7 +3,6 @@ import pickle
 import subprocess
 import time
 
-
 import settings
 from arango_doc.metagraph import MetaGraph as DMetaGraph
 from arango_graph.metagraph import MetaGraph as GMetaGraph
@@ -20,34 +19,42 @@ from mgraph_generator import (
     write_headers as gr_write_headers,
 )
 
+import logging
+logger = logging.getLogger()
+
+
 graphs = (DMetaGraph, GMetaGraph)
 
 
-def print_debug(s, debug):
-    if debug:
-        print(s)
-
-
-def test_add():
-    """
-    Db content - X nodes, X edges.
-    """
-    m = DMetaGraph()
-
+def test_add_nodes_and_edges(m):
+    # Adding new edges:
     total_nodes = 100
+    logger.info('Testing {} new nodes addition'.format(total_nodes))
 
-    nids = ['nv' + str(i) for i in range(1, total_nodes + 1)]
+    nids = ['new_vertex_' + str(i) for i in range(1, total_nodes + 1)]
 
     start_time = time.time()
     for i in range(total_nodes):
         m.add_node(nid=nids[i])
-
     total_time = time.time() - start_time
-    print_debug("Total --- %s seconds ---" % total_time, True)
-    print_debug("Avg --- %s seconds ---" % (total_time / total_nodes), True)
+    logger.info("Total --- %s seconds ---" % total_time)
+    logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
+
+    # Adding new nodes:
+    total_edges = total_nodes - 1
+    logger.info('Testing {} new edges addition'.format(total_edges))
+    eids = ['new_edge_' + str(i) for i in range(1, total_edges + 1)]
+
+    start_time = time.time()
+    for i in range(total_edges):
+        m.add_edge(eid=eids[i], from_node=nids[i], to_node=nids[i+1])
+    total_time = time.time() - start_time
+    logger.info("Total --- %s seconds ---" % total_time)
+    logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
 
 
 def test_get_submeta(m, meta_nids):
+    logger.info('Testing getting sub meta nodes')
 
     # global meta_nids_doc
     # print(meta_nids_doc)
@@ -57,7 +64,7 @@ def test_get_submeta(m, meta_nids):
     #     meta_nids_doc = pickle.load(input)
 
     for (width, depth), nids in meta_nids.items():
-        print_debug("Getting sub meta nodes with width {} and depth {}".format(width, depth), True)
+        logger.info("Getting sub meta nodes with width {} and depth {}".format(width, depth))
 
         total_nodes = len(nids)
 
@@ -71,8 +78,49 @@ def test_get_submeta(m, meta_nids):
                 assert len(nodes) == width * depth
 
         total_time = time.time() - start_time
-        print_debug("Total --- %s seconds ---" % total_time, True)
-        print_debug("Avg --- %s seconds ---" % (total_time / total_nodes), True)
+        logger.info("Total --- %s seconds ---" % total_time)
+        logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
+
+
+def test_remove_metanodes_deep(m, meta_nids):
+    logger.info('Testing removing metanodes with content')
+    for (width, depth), nids in meta_nids.items():
+        logger.info("Removing node and sub meta nodes with width {} and depth {}".format(width, depth))
+
+        total_nodes = len(nids)
+
+        nids = ['m{}'.format(nid) for nid in nids]
+
+        start_time = time.time()
+        for nid in nids:
+            m.remove_node(nid, remove_submeta=True)
+            if settings.DEBUG:
+                print('width: ', width, 'depth: ', depth)
+                assert not m.get_submeta_nodes(nid)
+
+        total_time = time.time() - start_time
+        logger.info("Total --- %s seconds ---" % total_time)
+        logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
+
+
+def test_remove_metanodes(m, meta_nids):
+    logger.info('Testing removing metanodes with content')
+    for (width, depth), nids in meta_nids.items():
+        if width == 1:
+            continue
+        logger.info("Removing node without sumbeta,  width {}".format(width, depth))
+
+        total_nodes = len(nids)
+
+        nids = ['m{}'.format(nid) for nid in nids]
+
+        start_time = time.time()
+        for nid in nids:
+            m.remove_node(nid, remove_submeta=False)
+
+        total_time = time.time() - start_time
+        logger.info("Total --- %s seconds ---" % total_time)
+        logger.info("Avg --- %s seconds ---" % (total_time / total_nodes))
 
 
 # Remember ids of meta vertices in graph for test
@@ -97,12 +145,14 @@ def init_dump(graph_type):
 
     trunc_files()
 
-    #  TODO not 0
-    write_nodes(0)
-    write_edges(0, 0)
+    if settings.DEBUG:
+        write_nodes(0)
+        write_edges(0, 0)
+    else:
+        write_nodes()
+        write_edges()
 
     current_meta_nid = 1
-
     total_metanodes = NIDS_PER_TYPE
     depth = 1
     for width in [10, 100, 1000, 10000]:
@@ -132,14 +182,15 @@ def init_dump(graph_type):
 
 
 def load_dump(graph_type):
-    print("Truncating db...")
+    logger.info("Truncating db...")
     subprocess.call([os.path.join(settings.BASE_DIR, 'arango_trunc_{}.sh'.format(graph_type))])
-    print("Loading dump...")
+    logger.info("Loading dump...")
     subprocess.call([os.path.join(settings.BASE_DIR, 'arango_import_{}.sh'.format(graph_type))])
 
 
 def main():
-    print('Starting test...')
+    logger.info('Starting test...')
+    # print('Starting test...')
     # init_doc_dump()
     # load_doc_dump()
 
@@ -148,17 +199,30 @@ def main():
     # test_remove_without_submeta()
     # test_remove_submeta()
 
-    # mgraph_doc = DMetaGraph()
-    # mgraph_doc.truncate()
-    # init_dump('doc')
-    # load_dump('doc')
+    logger.info('\n******DOCUMENT MODEL******')
+    mgraph_doc = DMetaGraph()
+    mgraph_doc.truncate()
+    init_dump('doc')
+    load_dump('doc')
     # test_get_submeta(mgraph_doc, meta_nids_doc)
+    # test_add_nodes_and_edges(mgraph_doc)
+    test_remove_metanodes(mgraph_doc, meta_nids_doc)
+    mgraph_doc.truncate()
+    load_dump('doc')
+    test_remove_metanodes_deep(mgraph_doc, meta_nids_doc)
 
+    logger.info('\n******GRAPH MODEL******')
     mgraph_graph = GMetaGraph()
     mgraph_graph.truncate()
     init_dump('graph')
     load_dump('graph')
-    test_get_submeta(mgraph_graph, meta_nids_graph)
+
+    # test_get_submeta(mgraph_graph, meta_nids_graph)
+    # test_add_nodes_and_edges(mgraph_graph)
+    test_remove_metanodes(mgraph_graph, meta_nids_graph)
+    mgraph_graph.truncate()
+    load_dump('graph')
+    test_remove_metanodes_deep(mgraph_graph, meta_nids_graph)
 
 
 if __name__ == '__main__':
