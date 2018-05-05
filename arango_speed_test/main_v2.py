@@ -1,5 +1,5 @@
+import logging
 import os
-import pickle
 import subprocess
 import time
 from collections import OrderedDict
@@ -20,7 +20,6 @@ from mgraph_generator import (
     write_headers as gr_write_headers,
 )
 
-import logging
 logger = logging.getLogger()
 
 
@@ -64,7 +63,7 @@ def test_add_remove_nodes_and_edges(m):
     logger.info('Removing edges (by key)'.format(total_edges))
     start_time = time.time()
     for i in range(total_edges):
-        m.remove_node(eid=eids[i])
+        m.remove_node(node=eids[i])
     total_time = time.time() - start_time
     log_time(total_time, total_edges)
 
@@ -72,7 +71,7 @@ def test_add_remove_nodes_and_edges(m):
     logger.info('Removing unconnected nodes'.format(total_edges))
     start_time = time.time()
     for i in range(total_nodes):
-        m.remove_node(nid=nids[i])
+        m.remove_node(node=nids[i])
     total_time = time.time() - start_time
     log_time(total_time, total_edges)
 
@@ -241,7 +240,7 @@ def load_dump(graph_type):
     subprocess.call([os.path.join(settings.BASE_DIR, 'arango_import_{}.sh'.format(graph_type))])
 
 
-def main():
+def run_tests():
     logger.info('Starting test...')
 
     logger.info('\n******DOCUMENT MODEL******')
@@ -271,4 +270,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    run_tests()

@@ -1,7 +1,5 @@
-import random
-
 import os
-
+import random
 import sys
 
 from arango_graph.metagraph import MetaGraph

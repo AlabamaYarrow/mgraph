@@ -3,7 +3,7 @@ db._createDatabase("mgraph");
 db._useDatabase("mgraph");
 
 db._create('Nodes');
-db._create('NodesConnections');
+db._createEdgeCollection('NodesConnections');
 
 var graph_module = require("org/arangodb/general-graph");
 var edgeDefinitions = [{

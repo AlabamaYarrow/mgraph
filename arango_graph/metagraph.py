@@ -24,7 +24,6 @@ NB: edgenodes collection requires
 """
 
 
-
 # noinspection PyProtectedMember
 class MetaGraph:
     """

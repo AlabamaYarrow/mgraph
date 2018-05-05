@@ -1,8 +1,7 @@
 import json
+import os
 import random
 import sys
-
-import os
 
 from arango_graph.metagraph import MetaGraph
 from settings import DUMPS_DIR
