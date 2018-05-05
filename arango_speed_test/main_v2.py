@@ -134,13 +134,6 @@ def init_graph_dump():
     gr_write_nodes(0)
     gr_write_edges(0, 0)
 
-    gr_write_metas(
-        start_metanid=1, total_metanodes=1,
-        meta_width=2, meta_depth=3
-    )
-
-    return
-
     current_meta_nid = 1
 
     total_metanodes = NIDS_PER_TYPE

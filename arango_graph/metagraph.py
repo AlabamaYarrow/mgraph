@@ -1,3 +1,5 @@
+import json
+
 from pyArango.connection import Connection
 from arango_graph.settings import USERNAME, PASSWORD, DB_NAME, DEBUG
 
@@ -118,35 +120,51 @@ class MetaGraph:
             edge[k] = v
         edge.save()
 
-    def remove_node(self, node, remove_submeta=False, recursive=False):
+    def remove_node(self, node, remove_submeta=False):
         """
         Remove node. Must remove node adjacent edges,
         edgenodes and edgenodes adjacent edges.
         :param remove_submeta: remove content of metanode
-        :param recursive: remove content of submetanodes
         """
-        if recursive and not remove_submeta:
-            raise ValueError('Recursive removal only allowed when removing submeta')
-
-        node_key = self._to_key(node)
-
-        aql = '''
-            FOR e in {edgenodes_collection} FILTER e.from=='{node_id}' OR e.to=='{node_id}' RETURN e
-        '''.format(
-            edgenodes_collection=self.EDGENODE_COLL,
-            node_id=self.key_to_id(node_key),
-        )
-        edge_nodes = self._run_aql(aql)
-        for edge_node in edge_nodes:  # TODO optimizable
-            self._remove_internal_node(edge_node._key)
-
-        # TODO документная база бахала, при удалении метаноды с
-        # двумя вложенными нодами (ноды удалялись раньше связи?)
-
+        nodes_to_remove = [node]
         if remove_submeta:
-            self._remove_submeta_nodes(node, recursive_removal=recursive)
+            nodes_to_remove.extend(self.get_submeta_nodes(node))
 
-        self._remove_internal_node(node_key)
+        for removed_node in nodes_to_remove:
+            node_key = self._to_key(removed_node)
+
+            # Removing edgenodes
+            aql = '''
+                FOR e in {edgenodes_collection} FILTER e.from=='{node_id}' OR e.to=='{node_id}' RETURN e
+            '''.format(
+                edgenodes_collection=self.EDGENODE_COLL,
+                node_id=self.key_to_id(node_key),
+            )
+            edge_nodes = self._run_aql(aql)
+            edge_nodes_ids = [e._id for e in edge_nodes]
+            _aql = '''
+                FOR edgenode_id IN {edgenodes_ids}
+                    LET removed_inbound = (
+                        FOR v, e IN 1..1 ANY edgenode_id GRAPH '{graph}' 
+                        REMOVE e._key IN {edges_collection}
+                    )
+    
+                    FOR n IN {nodes_collection}
+                    FILTER n._id == edgenode_id
+                    REMOVE n IN {nodes_collection}
+            '''.format(
+                edgenodes_ids=json.dumps(edge_nodes_ids),
+                graph=self.GRAPH,
+                submeta_label=self.METAEDGE_LABEL,
+                edges_collection=self.EDGES_COLL,
+                nodes_collection=self.NODES_COLL,
+                edgenodes_collection=self.EDGES_COLL,
+                node_key=node_key
+            )
+            self._run_aql(_aql)
+
+            # Removing node itself
+            self._remove_internal_node(node_key)
 
     def remove_from_metanode(self, node, metanode):
         node_key = self._to_key(node)
@@ -207,7 +225,10 @@ class MetaGraph:
                 FOR v, e IN 1..1 ANY '{node_id}' GRAPH '{graph}' 
                 REMOVE e._key IN {edges_collection}
             )
-            REMOVE '{node_key}' IN {nodes_collection}
+            
+            FOR n IN {nodes_collection}
+            FILTER n._key == '{node_key}'
+            REMOVE n IN {nodes_collection}
         '''.format(
             node_id=self.key_to_id(node_key),
             graph=self.GRAPH,
@@ -217,19 +238,8 @@ class MetaGraph:
             edgenodes_collection=self.EDGES_COLL,
             node_key=node_key
         )
+
         self._run_aql(_aql)
-
-    def _remove_submeta_nodes(self, node, recursive_removal=False):
-        """
-        Removing only nodes, edgenodes are removed automatically.
-        """
-        remove_submeta, recursive = False, False
-        if recursive_removal:
-            remove_submeta, recursive = True, True
-
-        submeta_nodes = self.get_submeta_nodes(node)
-        for submeta in submeta_nodes:
-            self.remove_node(submeta, remove_submeta=remove_submeta, recursive=recursive)
 
     @staticmethod
     def _build_query_string(**kwargs):
@@ -264,14 +274,7 @@ class MetaGraph:
 def main():
     m = MetaGraph()
     m.truncate()
-    #
-    # mv1 = m.add_node(nid='mv1', name='metavertex1')
-    # mv2 = m.add_node(nid='mv2', name='metavertex2')
-    # mv3 = m.add_node(nid='mv3', name='metavertex3')
-    # mv4 = m.add_node(nid='mv4', name='metavertex4')
-    # e32 = m.add_edge(mv3, mv2, eid='e12', name='edge12')
-    # e34 = m.add_edge(mv3, mv4, eid='e34', name='edge34')
-    #
+
     # m.add_to_metanode(mv4, mv3)
     # m.add_to_metanode(mv3, mv2)
     # m.add_to_metanode(mv2, mv1)
@@ -280,7 +283,6 @@ def main():
     #
     # for node in m.get_submeta_nodes(mv1):
     #     print(node['name'])
-
 
     # n1 = m.add_node(nid='v1', name='vertex1')
     # n2 = m.add_node(nid='v2', name='vertex2')
