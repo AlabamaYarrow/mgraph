@@ -13,6 +13,14 @@ NB: Creating edge collection and graph
             collection: "NodesConnections", from: [ "Nodes" ], to : [ "Nodes" ]
         }];
         graph = graph_module._create("NodesGraph", edgeDefinitions);
+        
+NB: edgenodes collection requires 
+    hash indexes on "to" and "from"
+    (sparse indexes if it's same collection with nodes)
+    
+    E.g. (arangosh command):
+        db.Nodes.ensureIndex({ type: "hash", fields: [ "from" ], sparse: true });
+        db.Nodes.ensureIndex({ type: "hash", fields: [ "to" ], sparse: true }); 
 """
 
 
@@ -137,32 +145,24 @@ class MetaGraph:
             node_key = self._to_key(removed_node)
 
             # Removing edgenodes
-            aql = '''
-                FOR e in {edgenodes_collection} FILTER e.from=='{node_id}' OR e.to=='{node_id}' RETURN e
-            '''.format(
-                edgenodes_collection=self.EDGENODE_COLL,
-                node_id=self.key_to_id(node_key),
-            )
-            edge_nodes = self._run_aql(aql)
-            edge_nodes_ids = [e._id for e in edge_nodes]
             _aql = '''
-                FOR edgenode_id IN {edgenodes_ids}
+                FOR edgenode in {edgenodes_collection}
+                FILTER edgenode.from=='{node_id}' OR edgenode.to=='{node_id}'
                     LET removed_inbound = (
-                        FOR v, e IN 1..1 ANY edgenode_id GRAPH '{graph}' 
+                        FOR v, e IN 1..1 ANY edgenode._id GRAPH '{graph}' 
                         REMOVE e._key IN {edges_collection}
                     )
     
                     FOR n IN {nodes_collection}
-                    FILTER n._id == edgenode_id
+                    FILTER n._id == edgenode._id
                     REMOVE n IN {nodes_collection}
             '''.format(
-                edgenodes_ids=json.dumps(edge_nodes_ids),
+                edgenodes_collection=self.EDGENODE_COLL,
+                node_id=self.key_to_id(node_key),
                 graph=self.GRAPH,
                 submeta_label=self.METAEDGE_LABEL,
                 edges_collection=self.EDGES_COLL,
                 nodes_collection=self.NODES_COLL,
-                edgenodes_collection=self.EDGES_COLL,
-                node_key=node_key
             )
             self._run_aql(_aql)
 
@@ -278,11 +278,25 @@ def main():
     m = MetaGraph()
     m.truncate()
     #
-    # mv1 = m.add_node(nid='m1')
-    #
-    # for x in range(1000):
+    mv0 = m.add_node(nid='m0')
+
+    mv1 = m.add_node(name='MV1', nid='m1')
+    mv2 = m.add_node(name='MV2', nid='m2')
+    mv3 = m.add_node(name='MV3', nid='m3')
+    e12 = m.add_edge(from_node=mv1, to_node=mv2, eid='e12')
+
+    m.add_to_metanode(mv1, mv0)
+    m.add_to_metanode(mv2, mv0)
+    m.add_to_metanode(mv3, mv0)
+    m.add_to_metanode(e12, mv0)
+
+
+
+    # for x in range(10):
     #     node = m.add_node(nid=str(x))
     #     m.add_to_metanode(node, mv1)
+
+    m.remove_node(mv0, remove_submeta=False)
     #
     # print(len(m.get_submeta_nodes('m1')))
 

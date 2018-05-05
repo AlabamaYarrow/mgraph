@@ -92,6 +92,8 @@ def test_get_submeta(m, meta_nids):
 def test_remove_metanodes_deep(m, meta_nids):
     logger.info('Testing removing metanodes with content')
     for (width, depth), nids in meta_nids.items():
+        if isinstance(m, DMetaGraph) and width > 100:  # too slow
+            continue
         logger.info("  removing node and sub meta nodes with width {} and depth {}".format(width, depth))
 
         total_nodes = len(nids)
@@ -110,8 +112,9 @@ def test_remove_metanodes_deep(m, meta_nids):
 
 
 def test_remove_metanodes(m, meta_nids):
-    logger.info('Testing removing metanodes with content')
+    logger.info('Testing removing metanodes without content')
     for (width, depth), nids in meta_nids.items():
+        # testing only on metanodes with depth==1 and many first level subnodes:
         if width == 1:
             continue
         logger.info("  removing node without sumbeta,  width {}".format(width, depth))
@@ -160,7 +163,9 @@ def init_dump(graph_type):
     current_meta_nid = 1
     total_metanodes = NIDS_PER_TYPE
 
-    # (width - number of submetanodes for each node, depth - number of levels)
+    # configs (width, depth)
+    #   width - number of submetanodes for each node
+    #   depth - number of levels
     meta_configurations = (
         (1, 10),
         (1, 100),
@@ -169,8 +174,8 @@ def init_dump(graph_type):
 
         (10, 1),
         (100, 1),
-        # (1000, 1),
-        # (10000, 1),
+        (1000, 1),
+        (10000, 1),
     )
 
     for width, depth in meta_configurations:
@@ -202,16 +207,16 @@ def main():
     # TODO add / remove to metanodes
 
     logger.info('\n******DOCUMENT MODEL******')
-    mgraph_doc = DMetaGraph()
-    mgraph_doc.truncate()
-    init_dump('doc')
-    load_dump('doc')
-    test_get_submeta(mgraph_doc, meta_nids_doc)
-    test_add_nodes_and_edges(mgraph_doc)
-    test_remove_metanodes(mgraph_doc, meta_nids_doc)
-    mgraph_doc.truncate()
-    load_dump('doc')
-    test_remove_metanodes_deep(mgraph_doc, meta_nids_doc)
+    # mgraph_doc = DMetaGraph()
+    # mgraph_doc.truncate()
+    # init_dump('doc')
+    # load_dump('doc')
+    # test_get_submeta(mgraph_doc, meta_nids_doc)
+    # test_add_nodes_and_edges(mgraph_doc)
+    # test_remove_metanodes(mgraph_doc, meta_nids_doc)
+    # mgraph_doc.truncate()
+    # load_dump('doc')
+    # test_remove_metanodes_deep(mgraph_doc, meta_nids_doc)
 
     logger.info('\n******GRAPH MODEL******')
     mgraph_graph = GMetaGraph()
@@ -219,9 +224,9 @@ def main():
     init_dump('graph')
     load_dump('graph')
 
-    test_get_submeta(mgraph_graph, meta_nids_graph)
-    test_add_nodes_and_edges(mgraph_graph)
-    test_remove_metanodes(mgraph_graph, meta_nids_graph)
+    # test_add_nodes_and_edges(mgraph_graph)
+    # test_get_submeta(mgraph_graph, meta_nids_graph)
+    # test_remove_metanodes(mgraph_graph, meta_nids_graph)
     mgraph_graph.truncate()
     load_dump('graph')
     test_remove_metanodes_deep(mgraph_graph, meta_nids_graph)
