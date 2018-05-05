@@ -36,8 +36,8 @@ def log_time(total_time, total_nodes):
     logger.info("\tAvg \t%s seconds" % trim_time(total_time / total_nodes))
 
 
-def test_add_nodes_and_edges(m):
-    # Adding new edges:
+def test_add_remove_nodes_and_edges(m):
+    # Adding new nodes:
     total_nodes = 100
     logger.info('Testing {} new nodes addition'.format(total_nodes))
 
@@ -49,7 +49,7 @@ def test_add_nodes_and_edges(m):
     total_time = time.time() - start_time
     log_time(total_time, total_nodes)
 
-    # Adding new nodes:
+    # Adding new edges:
     total_edges = total_nodes - 1
     logger.info('Testing {} new edges addition'.format(total_edges))
     eids = ['new_edge_' + str(i) for i in range(1, total_edges + 1)]
@@ -59,6 +59,48 @@ def test_add_nodes_and_edges(m):
         m.add_edge(eid=eids[i], from_node=nids[i], to_node=nids[i+1])
     total_time = time.time() - start_time
     log_time(total_time, total_edges)
+
+    # Removing edges:
+    logger.info('Removing edges (by key)'.format(total_edges))
+    start_time = time.time()
+    for i in range(total_edges):
+        m.remove_node(eid=eids[i])
+    total_time = time.time() - start_time
+    log_time(total_time, total_edges)
+
+    # Removing nodes:
+    logger.info('Removing unconnected nodes'.format(total_edges))
+    start_time = time.time()
+    for i in range(total_nodes):
+        m.remove_node(nid=nids[i])
+    total_time = time.time() - start_time
+    log_time(total_time, total_edges)
+
+
+def test_add_remove_to_metanode(m):
+    # Adding nodes to metanode:
+    total_nodes = 100
+    logger.info('Testing adding {} nodes to metanode'.format(total_nodes))
+
+    nids = ['new_subnode_' + str(i) for i in range(1, total_nodes + 1)]
+    for i in range(total_nodes):
+        m.add_node(nid=nids[i])
+
+    new_metanode = m.add_node(nid='new_metanode')
+
+    start_time = time.time()
+    for i in range(total_nodes):
+        m.add_to_metanode(node=nids[i], metanode=new_metanode)
+    total_time = time.time() - start_time
+    log_time(total_time, total_nodes)
+
+    # Removing nodes from metanode:
+    logger.info('Testing removing {} nodes from metanode'.format(total_nodes))
+    start_time = time.time()
+    for i in range(total_nodes):
+        m.remove_from_metanode(node=nids[i], metanode=new_metanode)
+    total_time = time.time() - start_time
+    log_time(total_time, total_nodes)
 
 
 def test_get_submeta(m, meta_nids):
@@ -93,6 +135,8 @@ def test_remove_metanodes_deep(m, meta_nids):
     logger.info('Testing removing metanodes with content')
     for (width, depth), nids in meta_nids.items():
         if isinstance(m, DMetaGraph) and width > 100:  # too slow
+            continue
+        if isinstance(m, GMetaGraph) and width > 1000:  # too slow
             continue
         logger.info("  removing node and sub meta nodes with width {} and depth {}".format(width, depth))
 
@@ -199,34 +243,28 @@ def load_dump(graph_type):
 
 def main():
     logger.info('Starting test...')
-    # print('Starting test...')
-    # init_doc_dump()
-    # load_doc_dump()
-
-    # TODO remove nodes / edges
-    # TODO add / remove to metanodes
 
     logger.info('\n******DOCUMENT MODEL******')
-    # mgraph_doc = DMetaGraph()
-    # mgraph_doc.truncate()
-    # init_dump('doc')
-    # load_dump('doc')
-    # test_get_submeta(mgraph_doc, meta_nids_doc)
-    # test_add_nodes_and_edges(mgraph_doc)
-    # test_remove_metanodes(mgraph_doc, meta_nids_doc)
-    # mgraph_doc.truncate()
-    # load_dump('doc')
-    # test_remove_metanodes_deep(mgraph_doc, meta_nids_doc)
+    mgraph_doc = DMetaGraph()
+    init_dump('doc')
+    load_dump('doc')
+    test_add_remove_nodes_and_edges(mgraph_doc)
+    test_add_remove_to_metanode(mgraph_doc)
+    test_get_submeta(mgraph_doc, meta_nids_doc)
+    test_remove_metanodes(mgraph_doc, meta_nids_doc)
+    mgraph_doc.truncate()
+    load_dump('doc')
+    test_remove_metanodes_deep(mgraph_doc, meta_nids_doc)
 
     logger.info('\n******GRAPH MODEL******')
     mgraph_graph = GMetaGraph()
-    mgraph_graph.truncate()
     init_dump('graph')
     load_dump('graph')
 
-    # test_add_nodes_and_edges(mgraph_graph)
-    # test_get_submeta(mgraph_graph, meta_nids_graph)
-    # test_remove_metanodes(mgraph_graph, meta_nids_graph)
+    test_add_remove_nodes_and_edges(mgraph_graph)
+    test_add_remove_to_metanode(mgraph_graph)
+    test_get_submeta(mgraph_graph, meta_nids_graph)
+    test_remove_metanodes(mgraph_graph, meta_nids_graph)
     mgraph_graph.truncate()
     load_dump('graph')
     test_remove_metanodes_deep(mgraph_graph, meta_nids_graph)
