@@ -86,31 +86,50 @@ def write_edges(total_nodes=TOTAL_NODES, total_edges=TOTAL_EDGES):
             )
 
 
-def _add_submetas(f, root_nid, meta_nid, depth, meta_width):
+# Common incremented key for submeta nodes to avoid collision
+submeta_pk = 0
+
+
+def _add_submetas(f, root_nid, meta_nid, depth, meta_width, keys_for_this_level):
+    """
+    :param root_nid: root metanode
+    :param meta_nid: parent metanode for this level
+    :param depth: current level (reversed, 0 is lowest)
+    :param meta_width: number of nodes to generate on this level
+    :param keys_for_this_level: node keys for this level (passed from parent
+                node because it must know them)
+    """
+    global submeta_pk
     if not depth:
         return
 
     depth -= 1
 
-    for j in range(1, meta_width + 1):
-        sub_nid = '{}-d{}-{}'.format(root_nid, depth, j)
+    for i in range(0, meta_width):
+        sub_nid = keys_for_this_level[i]
         int_attr = random.randint(1, 100)
         str_attr = 'attr_{}'.format(random.randint(1, 100))
 
         submeta_keys = []
         if depth:
-            submeta_keys = json.dumps(['{}-d{}-{}'.format(root_nid, depth - 1, j) for j in range(1, meta_width + 1)])
+            submeta_keys = ['{}-d{}-{}'.format(
+                root_nid,
+                depth - 1,
+                submeta_pk + j)
+                for j in range(1, meta_width + 1)]
+
+            submeta_pk += meta_width
 
         f.write(
             '{{ "_key": "{meta_nid}","int_attr":{int_attr},"str_attr":"{str_attr}",'
             '"_submeta":{_submeta},"_supermeta":{_supermeta} }}\n'.format(
                 meta_nid=sub_nid, int_attr=int_attr, str_attr=str_attr,
-                _submeta=submeta_keys,
+                _submeta=json.dumps(submeta_keys),
                 _supermeta=json.dumps([meta_nid])
             )
         )
 
-        _add_submetas(f, root_nid, sub_nid, depth, meta_width)
+        _add_submetas(f, root_nid, sub_nid, depth, meta_width, submeta_keys)
 
 
 def write_metas(start_metanid=1, total_metanodes=TOTAL_METANODES, meta_width=META_WIDTH, meta_depth=META_DEPTH):
@@ -123,19 +142,19 @@ def write_metas(start_metanid=1, total_metanodes=TOTAL_METANODES, meta_width=MET
             int_attr = random.randint(1, 100)
             str_attr = 'attr_{}'.format(random.randint(1, 100))
 
-            submeta_keys = json.dumps(['{}-d{}-{}'.format(meta_nid, meta_depth - 1, j)
-                                       for j in range(1, meta_width + 1)])
+            submeta_keys = ['{}-d{}-{}'.format(meta_nid, meta_depth - 1, j)
+                            for j in range(1, meta_width + 1)]
 
             f.write(
                 '{{ "_key": "{meta_nid}","int_attr":{int_attr},"str_attr":"{str_attr}",'
                 '"_submeta":{__submeta},"_supermeta":{__supermeta} }}\n'.format(
                     meta_nid=meta_nid, int_attr=int_attr, str_attr=str_attr,
-                    __submeta=submeta_keys,
+                    __submeta=json.dumps(submeta_keys),
                     __supermeta=[]
                 )
             )
 
-            _add_submetas(f, meta_nid, meta_nid, meta_depth, meta_width)
+            _add_submetas(f, meta_nid, meta_nid, meta_depth, meta_width, submeta_keys)
 
 
 if __name__ == '__main__':

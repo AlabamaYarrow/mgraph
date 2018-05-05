@@ -21,9 +21,9 @@ META_WIDTH = 0
 META_DEPTH = 0
 
 
-nodes_file = os.path.join(DUMPS_DIR, 'doc', 'nodes.csv')
-edgenodes_file = os.path.join(DUMPS_DIR, 'doc', 'edgenodes.csv')
-graph_file = os.path.join(DUMPS_DIR, 'doc', 'graph_edges.csv')
+nodes_file = os.path.join(DUMPS_DIR, 'graph', 'nodes.csv')
+edgenodes_file = os.path.join(DUMPS_DIR, 'graph', 'edgenodes.csv')
+graph_file = os.path.join(DUMPS_DIR, 'graph', 'graph_edges.csv')
 
 
 def write_headers():
@@ -45,7 +45,7 @@ def write_nodes(total_nodes=TOTAL_NODES):
         arangoimp --file nodes.csv --type csv --separator ';' --collection Nodes --server.database mgraph --server.password 1234
     """
 
-    with open(nodes_file, 'w') as f:
+    with open(nodes_file, 'a') as f:
         for x in range(1, total_nodes + 1):
             nid = 'v{}'.format(x)
             int_attr = random.randint(1, 100)
@@ -65,7 +65,7 @@ def write_edges(total_edges=TOTAL_EDGES, total_nodes=TOTAL_NODES):
 
     edges = []
 
-    with open(edgenodes_file, 'w') as f:
+    with open(edgenodes_file, 'a') as f:
         for x in range(1, total_edges + 1):
             eid = 'e{}'.format(x)
             int_attr = random.randint(1, 100)
@@ -82,7 +82,7 @@ def write_edges(total_edges=TOTAL_EDGES, total_nodes=TOTAL_NODES):
             )
 
     # Create Arango graph edges for each edgenode
-    with open(graph_file, 'w') as f:
+    with open(graph_file, 'a') as f:
         for edgenode in edges:
             eid, from_id, to_id = edgenode
             f.write(
@@ -99,14 +99,19 @@ def write_edges(total_edges=TOTAL_EDGES, total_nodes=TOTAL_NODES):
             )
 
 
+# Common incremented key for submeta nodes to avoid collision
+submeta_pk = 0
+
+
 def _add_submetas(f, gf, root_nid, meta_nid, depth, meta_width):
+    global submeta_pk
     if not depth:
         return
 
     depth -= 1
 
     for j in range(1, meta_width + 1):
-        sub_nid = '{}-d{}-{}'.format(root_nid, depth, j)
+        sub_nid = '{}-d{}-{}'.format(root_nid, depth, submeta_pk)
         int_attr = random.randint(1, 100)
         str_attr = 'attr_{}'.format(random.randint(1, 100))
         f.write(
@@ -114,6 +119,8 @@ def _add_submetas(f, gf, root_nid, meta_nid, depth, meta_width):
                 nid=sub_nid, int_attr=int_attr, str_attr=str_attr
             )
         )
+
+        submeta_pk += 1
 
         gf.write(
             '"{_from}";"{_to}";true\n'.format(
@@ -128,7 +135,7 @@ def _add_submetas(f, gf, root_nid, meta_nid, depth, meta_width):
 def write_metas(start_metanid=1, total_metanodes=TOTAL_METANODES, meta_width=META_WIDTH, meta_depth=META_DEPTH):
     sys.setrecursionlimit(20000)  # sorry Python :(
 
-    with open(nodes_file, 'a+') as f, open(graph_file, 'a+') as gf:
+    with open(nodes_file, 'a') as f, open(graph_file, 'a+') as gf:
         for x in range(start_metanid, start_metanid + total_metanodes):
             meta_nid = 'm{}'.format(x)
 

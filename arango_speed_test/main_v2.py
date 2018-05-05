@@ -13,6 +13,12 @@ from mgraph_doc_generator import (
     write_metas as doc_write_metas,
     trunc_files as doc_trunc_files,
 )
+from mgraph_generator import (
+    write_nodes as gr_write_nodes,
+    write_edges as gr_write_edges,
+    write_metas as gr_write_metas,
+    write_headers as gr_write_headers,
+)
 
 graphs = (DMetaGraph, GMetaGraph)
 
@@ -121,18 +127,69 @@ def load_doc_dump():
 
 
 def init_graph_dump():
-    pass
+    # TODO must be same as for doc (use 1 method?)
+    gr_write_headers()
+
+    #  TODO not 0
+    gr_write_nodes(0)
+    gr_write_edges(0, 0)
+
+    gr_write_metas(
+        start_metanid=1, total_metanodes=1,
+        meta_width=2, meta_depth=3
+    )
+
+    return
+
+    current_meta_nid = 1
+
+    total_metanodes = NIDS_PER_TYPE
+    depth = 1
+    for width in [10, 100, 1000, 10000]:
+        # total_metanodes = NIDS_PER_TYPE if depth < 10000 else 1
+        meta_nids_doc[(width, depth)] = list(
+            range(current_meta_nid, current_meta_nid + total_metanodes)
+        )
+
+        gr_write_metas(
+            start_metanid=current_meta_nid, total_metanodes=total_metanodes,
+            meta_width=width, meta_depth=depth
+        )
+        current_meta_nid += total_metanodes
+
+    width = 1
+    for depth in [10, 100, 1000, 10000]:
+        # total_metanodes = NIDS_PER_TYPE if width < 10000 else 1
+        meta_nids_doc[(width, depth)] = list(
+            range(current_meta_nid, current_meta_nid + total_metanodes)
+        )
+
+        gr_write_metas(
+            start_metanid=current_meta_nid, total_metanodes=total_metanodes,
+            meta_width=width, meta_depth=depth
+        )
+        current_meta_nid += total_metanodes
+
+
+def load_graph_dump():
+    print("Truncating db...")
+    subprocess.call([os.path.join(settings.BASE_DIR, 'arango_trunc_graph.sh')])
+    print("Loading dump...")
+    subprocess.call([os.path.join(settings.BASE_DIR, 'arango_import_graph.sh')])
 
 
 def main():
     print('Starting test...')
-    init_doc_dump()
-    load_doc_dump()
+    # init_doc_dump()
+    # load_doc_dump()
 
     # test_add()
     # test_get_submeta()
     # test_remove_without_submeta()
     # test_remove_submeta()
+
+    init_graph_dump()
+    load_graph_dump()
 
 
 if __name__ == '__main__':
