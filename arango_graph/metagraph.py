@@ -276,28 +276,29 @@ class MetaGraph:
 def main():
     m = MetaGraph()
     m.truncate()
-    #
-    mv0 = m.add_node(nid='m0')
 
     mv1 = m.add_node(name='MV1', nid='m1')
-    mv2 = m.add_node(name='MV2', nid='m2')
-    mv3 = m.add_node(name='MV3', nid='m3')
-    e12 = m.add_edge(from_node=mv1, to_node=mv2, eid='e12')
-
-    m.add_to_metanode(mv1, mv0)
-    m.add_to_metanode(mv2, mv0)
-    m.add_to_metanode(mv3, mv0)
-    m.add_to_metanode(e12, mv0)
-
-
-
-    # for x in range(10):
-    #     node = m.add_node(nid=str(x))
-    #     m.add_to_metanode(node, mv1)
-
-    m.remove_node(mv0, remove_submeta=False)
+    for x in range(1000):
+        node = m.add_node(nid=str(x))
+        m.add_to_metanode(node, mv1)
+    import time
+    s = time.time()
+    print(len(m.get_submeta_nodes('m1')))
+    print(time.time() - s)
     #
-    # print(len(m.get_submeta_nodes('m1')))
+    # mv0 = m.add_node(nid='m0')
+    #
+    # mv1 = m.add_node(name='MV1', nid='m1')
+    # mv2 = m.add_node(name='MV2', nid='m2')
+    # mv3 = m.add_node(name='MV3', nid='m3')
+    # e12 = m.add_edge(from_node=mv1, to_node=mv2, eid='e12')
+    #
+    # m.add_to_metanode(mv1, mv0)
+    # m.add_to_metanode(mv2, mv0)
+    # m.add_to_metanode(mv3, mv0)
+    # m.add_to_metanode(e12, mv0)
+
+    # m.remove_node(mv0, remove_submeta=False)
 
     # m.add_to_metanode(mv4, mv3)
     # m.add_to_metanode(mv3, mv2)

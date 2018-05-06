@@ -30,6 +30,8 @@ class MetaGraph:
     IN_ATTR = '_incoming'
     OUT_ATTR = '_outcoming'
 
+    MAX_BATCH_SIZE = 20000
+
     def __init__(self):
         conn = Connection(username=USERNAME, password=PASSWORD)
         self.db = conn[DB_NAME]
@@ -224,33 +226,8 @@ class MetaGraph:
         )
         self._run_aql(aql)
 
-    def get_submeta_nodes_recursive(self, node):
-        # sys.setrecursionlimit(20000)
-        submeta_nodes = []
-
-        def _get_submetas(_submeta_nodes, _node):
-            node_key = self._to_key(_node)
-            aql = '''
-                FOR e IN Nodes FILTER e._key == '{node_key}'
-                    FOR submeta_key in e._submeta OR []
-                        FOR node IN {nodes_collection} 
-                        FILTER node._key == submeta_key
-                            RETURN node
-            '''.format(
-                node_key=node_key,
-                nodes_collection=self.NODES_COLL
-            )
-
-            nodes = self._run_aql(aql)
-            _submeta_nodes.extend(nodes)
-            for sub_node in nodes:
-                _get_submetas(_submeta_nodes, sub_node)
-
-        _get_submetas(submeta_nodes, node)
-
-        return submeta_nodes
-
     def get_submeta_nodes(self, node):
+        # TODO probably optimizable
         def _get_submetas(_node):
             node_key = self._to_key(_node)
             aql = '''
@@ -272,7 +249,7 @@ class MetaGraph:
         while True:
             node_submetas = _get_submetas(node)
             submeta_nodes.extend(node_submetas)
-            nodes_to_visit.extend(node_submetas)
+            nodes_to_visit.extend(n for n in node_submetas if n[self.META_ATTR])
             if not nodes_to_visit:
                 break
             node = nodes_to_visit.pop()
@@ -316,24 +293,33 @@ class MetaGraph:
     def _run_aql(self, aql):
         if DEBUG:
             print(aql)
-        return self.db.AQLQuery(aql)
+        return self.db.AQLQuery(aql, batchSize=self.MAX_BATCH_SIZE)
 
 
 def main():
     m = MetaGraph()
     m.truncate()
 
-    mv1 = m.add_node(nid='mv1', name='metavertex1')
-    mv2 = m.add_node(nid='mv2', name='metavertex2')
-    mv3 = m.add_node(nid='mv3', name='metavertex3')
-    e32 = m.add_edge(mv3, mv2, eid='e12', name='edge12')
+    # mv1 = m.add_node(name='MV1', nid='m1')
+    # for x in range(1000):
+    #     node = m.add_node(nid=str(x))
+    #     m.add_to_metanode(node, mv1)
+    # import time
+    # s = time.time()
+    # print(len(m.get_submeta_nodes('m1')))
+    # print(time.time() - s)
 
-    m.add_to_metanode(mv3, mv2)
-    m.add_to_metanode(mv2, mv1)
-    m.add_to_metanode(e32, mv1)
-
-    print(m.get_submeta_nodes(mv1))
-    print(m.remove_node(mv1, remove_submeta=True))
+    # mv1 = m.add_node(nid='mv1', name='metavertex1')
+    # mv2 = m.add_node(nid='mv2', name='metavertex2')
+    # mv3 = m.add_node(nid='mv3', name='metavertex3')
+    # e32 = m.add_edge(mv3, mv2, eid='e12', name='edge12')
+    #
+    # m.add_to_metanode(mv3, mv2)
+    # m.add_to_metanode(mv2, mv1)
+    # m.add_to_metanode(e32, mv1)
+    #
+    # print(m.get_submeta_nodes(mv1))
+    # print(m.remove_node(mv1, remove_submeta=True))
 
     # n1 = m.add_node(nid='v1', name='vertex1')
     # n2 = m.add_node(nid='v2', name='vertex2')

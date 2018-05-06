@@ -48,6 +48,14 @@ def test_add_remove_nodes_and_edges(m):
     total_time = time.time() - start_time
     log_time(total_time, total_nodes)
 
+    # Updating nodes"
+    logger.info('Testing {} changing node attribute'.format(total_nodes))
+    start_time = time.time()
+    for i in range(total_nodes):
+        m.update_node(node=nids[i], str_attr='new_attr')
+    total_time = time.time() - start_time
+    log_time(total_time, total_nodes)
+
     # Adding new edges:
     total_edges = total_nodes - 1
     logger.info('Testing {} new edges addition'.format(total_edges))
@@ -242,6 +250,10 @@ def load_dump(graph_type):
 
 def run_tests():
     logger.info('Starting test...')
+
+    # TODO 1. more points
+    # TODO describe testing
+    # TODO describe arango-postgres
 
     logger.info('\n******DOCUMENT MODEL******')
     mgraph_doc = DMetaGraph()
