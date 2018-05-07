@@ -219,13 +219,16 @@ def init_dump(graph_type):
     #   depth - number of levels
     meta_configurations = (
         (1, 10),
+        (1, 50),
         (1, 100),
         # (1, 1000),
         # (1, 10000),
 
         (10, 1),
         (100, 1),
+        (500, 1),
         (1000, 1),
+        (5000, 1),
         (10000, 1),
     )
 
@@ -251,10 +254,6 @@ def load_dump(graph_type):
 def run_tests():
     logger.info('Starting test...')
 
-    # TODO 1. more points
-    # TODO describe testing
-    # TODO describe arango-postgres
-
     logger.info('\n******DOCUMENT MODEL******')
     mgraph_doc = DMetaGraph()
     init_dump('doc')
@@ -266,6 +265,8 @@ def run_tests():
     mgraph_doc.truncate()
     load_dump('doc')
     test_remove_metanodes_deep(mgraph_doc, meta_nids_doc)
+
+    mgraph_doc.truncate()
 
     logger.info('\n******GRAPH MODEL******')
     mgraph_graph = GMetaGraph()
