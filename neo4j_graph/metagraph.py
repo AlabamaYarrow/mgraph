@@ -8,6 +8,9 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
 
+# TODO index _id !!!
+
+
 class MetaGraph:
     meta_label = 'meta_sub'
 
@@ -16,11 +19,21 @@ class MetaGraph:
             return tx.run('MATCH (n) DETACH DELETE n')
         return self._read(_truncate)
 
-    def match(self):
+    def match(self, query=''):
         def _match(tx):
-            return tx.run("MATCH (n) RETURN n")
+            return tx.run("MATCH (n {query}) RETURN n".format(query=query))
 
         return self._read(_match)
+
+    def write(self, query):
+        def _write(tx):
+            return tx.run(query)
+        return self._write(_write)
+
+    def read(self, query):
+        def _read(tx):
+            return tx.run(query)
+        return self._read(_read)
 
     def add_node(self, nid, label='Node', **kwargs):
         data = {}
@@ -57,9 +70,46 @@ class MetaGraph:
 
         return edge_node
 
-    def add_to_metanode(self, node_id, meta_id):
+    def add_to_metanode(self, node, meta_node):
+        node_id = self._to_id(node)
+        meta_id = self._to_id(meta_node)
         self._add_edge(node_id, meta_id, self.meta_label)
 
+    def filter_nodes(self, **kwargs):
+        query = get_data_str(kwargs)
+        return self.match(query)
+
+    def update_node(self, node, **kwargs):
+        node_id = self._to_id(node)
+        if len(kwargs) > 1:
+            raise ValueError('Only one field per update possible')
+        field, value = list(kwargs.items())[0]
+        query = """
+            MATCH (n {{ _id: '{node_id}' }})
+            SET n.{field} = {value}
+            RETURN n
+        """.format(
+            node_id=node_id,
+            field=field,
+            value=value
+        )
+
+        self.write(query)
+
+    def update_edge(self, edge, **kwargs):
+        self.update_node(edge, **kwargs)
+
+    def get_submeta_nodes(self, node):
+        node_id = self._to_id(node)
+        query = """ 
+            MATCH (n {{ _id: '{node_id}' }})<-[:{meta_label}*..]-(sn)
+            RETURN sn
+        """.format(
+            node_id=node_id,
+            meta_label=self.meta_label
+        )
+        logger.info(query)
+        return self.read(query)
 
     def _read(self, tx_method):
         conn = Connection()
@@ -103,9 +153,18 @@ def main():
     m = MetaGraph()
     m.truncate()
     mv1 = m.add_node(name='MV1', nid='m1')
+    mv2 = m.add_node(name='MV2', nid='m2')
     mv3 = m.add_node(name='MV3', nid='m3')
     e12 = m.add_edge(from_node=mv1, to_node=mv3, eid='e12')
 
+    m.add_to_metanode(mv3, mv1)
+    m.add_to_metanode(mv2, mv1)
+
+    m.filter_nodes(_id='m1').single()
+
+    m.update_node(mv1, new_field='123')
+
+    print(m.get_submeta_nodes(mv1))
 
 
 if __name__ == '__main__':
