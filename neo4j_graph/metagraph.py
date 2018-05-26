@@ -1,6 +1,8 @@
 import logging
 from textwrap import dedent as dt
 
+from neo4j.v1 import Record
+
 from neo4j_graph.connection import Connection
 from neo4j_graph.utils import get_data_str
 
@@ -9,6 +11,7 @@ logger.addHandler(logging.StreamHandler())
 
 
 # TODO index _id !!!
+# TODO index edgenode from and to
 
 
 class MetaGraph:
@@ -17,6 +20,7 @@ class MetaGraph:
     def truncate(self):
         def _truncate(tx):
             return tx.run('MATCH (n) DETACH DELETE n')
+
         return self._read(_truncate)
 
     def match(self, query=''):
@@ -28,11 +32,13 @@ class MetaGraph:
     def write(self, query):
         def _write(tx):
             return tx.run(query)
+
         return self._write(_write)
 
     def read(self, query):
         def _read(tx):
             return tx.run(query)
+
         return self._read(_read)
 
     def add_node(self, nid, label='Node', **kwargs):
@@ -55,6 +61,8 @@ class MetaGraph:
         for k, v in kwargs.items():
             data[k] = v
         data['_id'] = eid
+        data['from'] = self._to_id(from_node)
+        data['to'] = self._to_id(to_node)
 
         statement = 'CREATE (n:{label} {data}) RETURN n'.format(
             label=label, data=get_data_str(data)
@@ -102,14 +110,49 @@ class MetaGraph:
     def get_submeta_nodes(self, node):
         node_id = self._to_id(node)
         query = """ 
-            MATCH (n {{ _id: '{node_id}' }})<-[:{meta_label}*..]-(sn)
-            RETURN sn
+            MATCH (n {{ _id: '{node_id}' }})<-[:{meta_label}*..]-(subnode)
+            RETURN subnode
         """.format(
             node_id=node_id,
             meta_label=self.meta_label
         )
         logger.info(query)
         return self.read(query)
+
+    def remove_node(self, node, remove_submeta=False):
+        """
+        Remove node. Must remove node adjacent edges,
+        edgenodes and edgenodes adjacent edges.
+        :param remove_submeta: remove content of metanode
+        """
+        nodes_to_remove = [node]
+        if remove_submeta:
+            nodes_to_remove.extend(self.get_submeta_nodes(node))
+
+        for removed_node in nodes_to_remove:
+            node_id = self._to_id(removed_node)
+
+            # Removing edgenodes
+            # (we have to remove them explicitly, because edgenode cannot exist
+            # without one of node it is connecting, but edgenode may not be part
+            # of removed metanode)
+            query = '''
+                MATCH (edgenode) 
+                WHERE edgenode.from = '{node_id}' OR edgenode.to = '{node_id}'
+                DETACH DELETE edgenode
+            '''.format(node_id=node_id)
+            logger.info(query)
+            self.write(query)
+
+            # Removing node itself
+            query = '''
+                MATCH (node)
+                WHERE node._id = '{node_id}'
+                DETACH DELETE node
+            '''.format(node_id=node_id)
+            logger.info(query)
+            self.write(query)
+
 
     def _read(self, tx_method):
         conn = Connection()
@@ -129,9 +172,9 @@ class MetaGraph:
             MATCH (n_to) WITH n_fr, n_to WHERE n_to._id = '{to_id}'
             CREATE (n_fr)-[ r:{label} ]->(n_to) RETURN r
             """).format(
-                from_id=from_id,
-                to_id=to_id,
-                label=edge_label
+            from_id=from_id,
+            to_id=to_id,
+            label=edge_label
         )
 
         logger.info(statement)
@@ -145,6 +188,8 @@ class MetaGraph:
     def _to_id(node):
         if type(node) is str:
             return node
+        elif isinstance(node, Record):
+            return node.values()[0].properties.get('_id')
         else:
             return node.properties.get('_id')
 
@@ -152,19 +197,33 @@ class MetaGraph:
 def main():
     m = MetaGraph()
     m.truncate()
-    mv1 = m.add_node(name='MV1', nid='m1')
-    mv2 = m.add_node(name='MV2', nid='m2')
-    mv3 = m.add_node(name='MV3', nid='m3')
-    e12 = m.add_edge(from_node=mv1, to_node=mv3, eid='e12')
+    # mv1 = m.add_node(name='MV1', nid='m1')
+    # mv2 = m.add_node(name='MV2', nid='m2')
+    # mv3 = m.add_node(name='MV3', nid='m3')
+    # e12 = m.add_edge(from_node=mv1, to_node=mv3, eid='e12')
+    #
+    # m.add_to_metanode(mv2, mv1)
+    # m.add_to_metanode(mv3, mv2)
+    #
+    # m.filter_nodes(_id='m1').single()
+    #
+    # m.update_node(mv1, new_field='123')
+    #
+    # print(m.get_submeta_nodes(mv1))
 
-    m.add_to_metanode(mv3, mv1)
-    m.add_to_metanode(mv2, mv1)
-
-    m.filter_nodes(_id='m1').single()
-
-    m.update_node(mv1, new_field='123')
-
-    print(m.get_submeta_nodes(mv1))
+    # mv1 = m.add_node(name='MV1', nid='m1')
+    # mv2 = m.add_node(name='MV2', nid='m2')
+    # e12 = m.add_edge(from_node=mv1, to_node=mv2, eid='e12')
+    # mv3 = m.add_node(name='MV3', nid='m3')
+    #
+    # m.add_to_metanode(mv1, mv2)
+    # m.add_to_metanode(mv2, mv3)
+    #
+    # subs = m.get_submeta_nodes(mv3)
+    #
+    # print(m.get_submeta_nodes(mv3))
+    #
+    # m.remove_node(mv3, remove_submeta=True)
 
 
 if __name__ == '__main__':
