@@ -330,7 +330,6 @@ def main():
 
     # e12 = m.add_node(name='V2', nid='e12')
 
-
     # mv1 = m.add_node(name='MV1', nid='m1')
 
     # m.add_to_metanode(n1, mv1)

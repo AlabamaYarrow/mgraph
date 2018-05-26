@@ -153,6 +153,19 @@ class MetaGraph:
             logger.info(query)
             self.write(query)
 
+    def remove_from_metanode(self, node, metanode):
+        node_id = self._to_id(node)
+        metanode_id = self._to_id(metanode)
+        query = '''
+            MATCH (metanode {{ _id: '{node_id}' }} )-[r:{meta_label}]->( node {{ _id: '{metanode_id}' }} )
+            DELETE r
+        '''.format(
+            node_id=node_id,
+            metanode_id=metanode_id,
+            meta_label=self.meta_label
+
+        )
+        self.write(query)
 
     def _read(self, tx_method):
         conn = Connection()
@@ -216,9 +229,12 @@ def main():
     # e12 = m.add_edge(from_node=mv1, to_node=mv2, eid='e12')
     # mv3 = m.add_node(name='MV3', nid='m3')
     #
-    # m.add_to_metanode(mv1, mv2)
+    # m.add_to_metanode(e12, mv3)
+    # m.add_to_metanode(mv1, mv3)
     # m.add_to_metanode(mv2, mv3)
     #
+    # m.remove_from_metanode(e12, mv3)
+
     # subs = m.get_submeta_nodes(mv3)
     #
     # print(m.get_submeta_nodes(mv3))
