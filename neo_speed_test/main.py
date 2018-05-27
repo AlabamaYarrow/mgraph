@@ -30,7 +30,7 @@ def log_time(total_time, total_nodes):
 
 def test_add_remove_nodes_and_edges(m):
     # Adding new nodes:
-    total_nodes = 100
+    total_nodes = 2
     logger.warning('Testing {} new nodes addition'.format(total_nodes))
 
     nids = ['new_vertex_' + str(i) for i in range(1, total_nodes + 1)]
@@ -251,9 +251,9 @@ def run_tests():
     mgraph_graph = NGMetaGraph()
 
 
-    # init_dump('graph')
-    #
-    # load_dump('graph')
+    init_dump('graph')
+
+    load_dump('graph')
 
     test_add_remove_nodes_and_edges(mgraph_graph)
     # test_add_remove_to_metanode(mgraph_graph)

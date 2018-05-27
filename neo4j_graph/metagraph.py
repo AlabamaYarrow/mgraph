@@ -196,8 +196,8 @@ class MetaGraph:
         from_id = self._to_id(from_node)
         to_id = self._to_id(to_node)
         statement = dt("""
-            MATCH (n_fr) WITH n_fr WHERE n_fr._id = '{from_id}'
-            MATCH (n_to) WITH n_fr, n_to WHERE n_to._id = '{to_id}'
+            MATCH (n_fr) WHERE n_fr._id = '{from_id}' WITH n_fr
+            MATCH (n_to) WHERE n_to._id = '{to_id}' WITH n_fr, n_to 
             CREATE (n_fr)-[ r:{label} ]->(n_to) RETURN r
             """).format(
             from_id=from_id,
