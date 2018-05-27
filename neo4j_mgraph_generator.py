@@ -1,10 +1,15 @@
+import logging
 import os
 import random
 import sys
 
+
 from neo4j_graph.metagraph import MetaGraph
 from neo4j_graph.metagraph import NODE_LABEL, EDGENODE_LABEL
 from settings import NEO_DUMPS_DIR
+
+logger = logging.getLogger(__name__)
+
 
 """
 Neo4j data generator for graph model.
@@ -35,6 +40,7 @@ def write_headers():
     """
     Write csv headers (and truncate files).
     """
+    logger.warning('Writing headers...')
     with open(nodes_file, 'w') as f:
         f.write('_id:ID;str_attr:string;int_attr:int;from:string;to:string;:LABEL\n')
 
@@ -50,6 +56,7 @@ def write_dummy_nodes(total_nodes=TOTAL_NODES, total_edges=TOTAL_EDGES):
     sudo neo4j-admin import --database graph.db --delimiter=';' --array-delimiter=','
     --id-type INTEGER /.../....csv
     """
+    logger.warning('Writing dummy nodes...')
     with open(nodes_file, 'a') as f:
         nid = 1
         for x in range(1, total_nodes + 1):
