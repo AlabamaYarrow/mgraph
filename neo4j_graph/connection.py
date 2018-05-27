@@ -7,6 +7,12 @@ from neo4j_graph.settings import USERNAME, PASSWD, URI
 logger = logging.getLogger(__name__)
 
 
+def get_driver():
+    return GraphDatabase.driver(
+        URI, auth=(USERNAME, PASSWD)
+    )
+
+
 class Connection:
     _connection = None
 
@@ -17,9 +23,7 @@ class Connection:
         if Connection._connection is None:
             Connection._connection = super().__new__(cls)
             logger.info("Opening connection")
-            Connection._connection.driver = GraphDatabase.driver(
-                URI, auth=(USERNAME, PASSWD)
-            )
+            Connection._connection.driver = get_driver()
 
         return Connection._connection
 

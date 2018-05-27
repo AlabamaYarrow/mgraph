@@ -159,7 +159,7 @@ def test_remove_metanodes(m, meta_nids):
         # testing only on metanodes with depth==1 and many first level subnodes:
         if width == 1:
             continue
-        logger.warning("  removing node without sumbeta,  width {}".format(width, depth))
+        logger.warning("  removing node without submeta,  width {}".format(width, depth))
 
         total_nodes = len(nids)
 
@@ -248,11 +248,12 @@ def run_tests():
     logger.warning('Starting test...')
 
     logger.warning('\n******NEO GRAPH MODEL******')
-    mgraph_graph = NGMetaGraph()
 
     init_dump('graph')
 
     load_dump('graph')
+
+    mgraph_graph = NGMetaGraph()
 
     test_add_remove_nodes_and_edges(mgraph_graph)
     test_add_remove_to_metanode(mgraph_graph)
@@ -260,6 +261,7 @@ def run_tests():
     test_remove_metanodes(mgraph_graph, meta_nids_graph)
 
     load_dump('graph')
+    mgraph_graph = NGMetaGraph()
     test_remove_metanodes_deep(mgraph_graph, meta_nids_graph)
 
 

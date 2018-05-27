@@ -3,7 +3,7 @@ from textwrap import dedent as dt
 
 from neo4j.v1 import Record
 
-from neo4j_graph.connection import Connection
+from neo4j_graph.connection import Connection, get_driver
 from neo4j_graph.utils import get_data_str
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,9 @@ NODE_LABEL = 'Node'
 
 class MetaGraph:
     meta_label = 'submeta'
+
+    def __init__(self):
+        self.driver = get_driver()
 
     def truncate(self):
         def _truncate(tx):
@@ -88,15 +91,18 @@ class MetaGraph:
 
         edge_node = self._write(_create_node).single()[0]
 
-        self._add_edge(from_node, edge_node)
-        self._add_edge(edge_node, to_node)
+        self._add_edge(from_node, edge_node, from_label=NODE_LABEL, to_label=EDGENODE_LABEL)
+        self._add_edge(edge_node, to_node, from_label=EDGENODE_LABEL, to_label=NODE_LABEL)
 
         return edge_node
 
-    def add_to_metanode(self, node, metanode):
+    def add_to_metanode(self, node, metanode, node_label=NODE_LABEL):
         node_id = self._to_id(node)
         meta_id = self._to_id(metanode)
-        self._add_edge(node_id, meta_id, self.meta_label)
+        self._add_edge(node_id, meta_id, self.meta_label, from_label=node_label)
+
+    def add_edge_to_metanode(self, node, metanode):
+        self.add_to_metanode(node, metanode, EDGENODE_LABEL)
 
     def filter_nodes(self, **kwargs):
         query = get_data_str(kwargs)
@@ -186,24 +192,23 @@ class MetaGraph:
         self.write(query)
 
     def _read(self, tx_method):
-        conn = Connection()
-        with conn.driver.session() as s:
+        with self.driver.session() as s:
             return s.read_transaction(tx_method)
 
     def _write(self, tx_method, *args):
-        conn = Connection()
-        with conn.driver.session() as s:
+        with self.driver.session() as s:
             return s.write_transaction(tx_method, *args)
 
-    def _add_edge(self, from_node, to_node, edge_label='x'):
+    def _add_edge(self, from_node, to_node, edge_label='x', from_label=NODE_LABEL, to_label=NODE_LABEL):
         from_id = self._to_id(from_node)
         to_id = self._to_id(to_node)
         statement = dt("""
-            MATCH (n_fr:{node_label}) WHERE n_fr._id = '{from_id}' WITH n_fr
-            MATCH (n_to:{node_label}) WHERE n_to._id = '{to_id}' WITH n_fr, n_to 
+            MATCH (n_fr:{from_label}) WHERE n_fr._id = '{from_id}' WITH n_fr
+            MATCH (n_to:{to_label}) WHERE n_to._id = '{to_id}' WITH n_fr, n_to 
             CREATE (n_fr)-[ r:{label} ]->(n_to) RETURN r
             """).format(
-            node_label=NODE_LABEL,
+            from_label=from_label,
+            to_label=to_label,
             from_id=from_id,
             to_id=to_id,
             label=edge_label
@@ -250,17 +255,17 @@ def main():
     e12 = m.add_edge(from_node=mv1, to_node=mv2, eid='e12')
     mv3 = m.add_node(name='MV3', nid='m3')
 
-    m.add_to_metanode(e12, mv3)
+    m.add_edge_to_metanode(e12, mv3)
     m.add_to_metanode(mv1, mv3)
     m.add_to_metanode(mv2, mv3)
-
-    m.remove_from_metanode(e12, mv3)
-
-    subs = m.get_submeta_nodes(mv3)
-
-    print(m.get_submeta_nodes(mv3))
-
-    m.remove_node(mv3, remove_submeta=True)
+    #
+    # m.remove_from_metanode(e12, mv3)
+    #
+    # subs = m.get_submeta_nodes(mv3)
+    #
+    # print(m.get_submeta_nodes(mv3))
+    #
+    # m.remove_node(mv3, remove_submeta=True)
 
 
 if __name__ == '__main__':
