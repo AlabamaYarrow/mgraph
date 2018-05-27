@@ -108,10 +108,11 @@ class MetaGraph:
             raise ValueError('Only one field per update possible')
         field, value = list(kwargs.items())[0]
         query = """
-            MATCH (n {{ _id: '{node_id}' }})
+            MATCH (n:{node_label} {{ _id: '{node_id}' }})
             SET n.{field} = '{value}'
             RETURN n
         """.format(
+            node_label=NODE_LABEL,
             node_id=node_id,
             field=field,
             value=value
@@ -125,10 +126,11 @@ class MetaGraph:
     def get_submeta_nodes(self, node):
         node_id = self._to_id(node)
         query = """ 
-            MATCH (n {{ _id: '{node_id}' }})<-[:{meta_label}*..]-(subnode)
+            MATCH (n:{node_label} {{ _id: '{node_id}' }})<-[:{meta_label}*..]-(subnode)
             RETURN subnode
         """.format(
             node_id=node_id,
+            node_label=NODE_LABEL,
             meta_label=self.meta_label
         )
         logger.info(query)
@@ -152,19 +154,19 @@ class MetaGraph:
             # without one of node it is connecting, but edgenode may not be part
             # of removed metanode)
             query = '''
-                MATCH (edgenode) 
+                MATCH (edgenode:{edgenode_label}) 
                 WHERE edgenode.from = '{node_id}' OR edgenode.to = '{node_id}'
                 DETACH DELETE edgenode
-            '''.format(node_id=node_id)
+            '''.format(node_id=node_id, edgenode_label=EDGENODE_LABEL)
             logger.info(query)
             self.write(query)
 
             # Removing node itself
             query = '''
-                MATCH (node)
+                MATCH (node:{node_label})
                 WHERE node._id = '{node_id}'
                 DETACH DELETE node
-            '''.format(node_id=node_id)
+            '''.format(node_id=node_id, node_label=NODE_LABEL)
             logger.info(query)
             self.write(query)
 
@@ -172,10 +174,11 @@ class MetaGraph:
         node_id = self._to_id(node)
         metanode_id = self._to_id(metanode)
         query = '''
-            MATCH (metanode {{ _id: '{node_id}' }} )-[r:{meta_label}]->( node {{ _id: '{metanode_id}' }} )
+            MATCH (metanode:{node_label} {{ _id: '{node_id}' }} )-[r:{meta_label}]->( node:{node_label} {{ _id: '{metanode_id}' }} )
             DELETE r
         '''.format(
             node_id=node_id,
+            node_label=NODE_LABEL,
             metanode_id=metanode_id,
             meta_label=self.meta_label
 
@@ -196,10 +199,11 @@ class MetaGraph:
         from_id = self._to_id(from_node)
         to_id = self._to_id(to_node)
         statement = dt("""
-            MATCH (n_fr) WHERE n_fr._id = '{from_id}' WITH n_fr
-            MATCH (n_to) WHERE n_to._id = '{to_id}' WITH n_fr, n_to 
+            MATCH (n_fr:{node_label}) WHERE n_fr._id = '{from_id}' WITH n_fr
+            MATCH (n_to:{node_label}) WHERE n_to._id = '{to_id}' WITH n_fr, n_to 
             CREATE (n_fr)-[ r:{label} ]->(n_to) RETURN r
             """).format(
+            node_label=NODE_LABEL,
             from_id=from_id,
             to_id=to_id,
             label=edge_label
