@@ -109,7 +109,7 @@ class MetaGraph:
         field, value = list(kwargs.items())[0]
         query = """
             MATCH (n {{ _id: '{node_id}' }})
-            SET n.{field} = {value}
+            SET n.{field} = '{value}'
             RETURN n
         """.format(
             node_id=node_id,

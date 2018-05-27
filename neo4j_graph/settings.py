@@ -4,7 +4,7 @@ import os
 
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
