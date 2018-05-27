@@ -30,7 +30,7 @@ def log_time(total_time, total_nodes):
 
 def test_add_remove_nodes_and_edges(m):
     # Adding new nodes:
-    total_nodes = 2
+    total_nodes = 10
     logger.warning('Testing {} new nodes addition'.format(total_nodes))
 
     nids = ['new_vertex_' + str(i) for i in range(1, total_nodes + 1)]
@@ -79,7 +79,7 @@ def test_add_remove_nodes_and_edges(m):
 
 def test_add_remove_to_metanode(m):
     # Adding nodes to metanode:
-    total_nodes = 100
+    total_nodes = 10
     logger.warning('Testing adding {} nodes to metanode'.format(total_nodes))
 
     nids = ['new_subnode_' + str(i) for i in range(1, total_nodes + 1)]
@@ -250,18 +250,17 @@ def run_tests():
     logger.warning('\n******NEO GRAPH MODEL******')
     mgraph_graph = NGMetaGraph()
 
-
     init_dump('graph')
 
     load_dump('graph')
 
     test_add_remove_nodes_and_edges(mgraph_graph)
-    # test_add_remove_to_metanode(mgraph_graph)
-    # test_get_submeta(mgraph_graph, meta_nids_graph)
-    # test_remove_metanodes(mgraph_graph, meta_nids_graph)
-    #
-    # load_dump('graph')
-    # test_remove_metanodes_deep(mgraph_graph, meta_nids_graph)
+    test_add_remove_to_metanode(mgraph_graph)
+    test_get_submeta(mgraph_graph, meta_nids_graph)
+    test_remove_metanodes(mgraph_graph, meta_nids_graph)
+
+    load_dump('graph')
+    test_remove_metanodes_deep(mgraph_graph, meta_nids_graph)
 
 
 if __name__ == '__main__':

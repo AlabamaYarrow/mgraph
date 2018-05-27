@@ -93,9 +93,9 @@ class MetaGraph:
 
         return edge_node
 
-    def add_to_metanode(self, node, meta_node):
+    def add_to_metanode(self, node, metanode):
         node_id = self._to_id(node)
-        meta_id = self._to_id(meta_node)
+        meta_id = self._to_id(metanode)
         self._add_edge(node_id, meta_id, self.meta_label)
 
     def filter_nodes(self, **kwargs):
@@ -132,7 +132,7 @@ class MetaGraph:
             meta_label=self.meta_label
         )
         logger.info(query)
-        return self.read(query)
+        return list(self.read(query).data())
 
     def remove_node(self, node, remove_submeta=False):
         """
@@ -216,6 +216,8 @@ class MetaGraph:
     def _to_id(node):
         if type(node) is str:
             return node
+        elif type(node) is dict:
+            return list(node.values())[0].properties.get('_id')
         elif isinstance(node, Record):
             return node.values()[0].properties.get('_id')
         else:
@@ -239,22 +241,22 @@ def main():
     #
     # print(m.get_submeta_nodes(mv1))
 
-    # mv1 = m.add_node(name='MV1', nid='m1')
-    # mv2 = m.add_node(name='MV2', nid='m2')
-    # e12 = m.add_edge(from_node=mv1, to_node=mv2, eid='e12')
-    # mv3 = m.add_node(name='MV3', nid='m3')
-    #
-    # m.add_to_metanode(e12, mv3)
-    # m.add_to_metanode(mv1, mv3)
-    # m.add_to_metanode(mv2, mv3)
-    #
-    # m.remove_from_metanode(e12, mv3)
+    mv1 = m.add_node(name='MV1', nid='m1')
+    mv2 = m.add_node(name='MV2', nid='m2')
+    e12 = m.add_edge(from_node=mv1, to_node=mv2, eid='e12')
+    mv3 = m.add_node(name='MV3', nid='m3')
 
-    # subs = m.get_submeta_nodes(mv3)
-    #
-    # print(m.get_submeta_nodes(mv3))
-    #
-    # m.remove_node(mv3, remove_submeta=True)
+    m.add_to_metanode(e12, mv3)
+    m.add_to_metanode(mv1, mv3)
+    m.add_to_metanode(mv2, mv3)
+
+    m.remove_from_metanode(e12, mv3)
+
+    subs = m.get_submeta_nodes(mv3)
+
+    print(m.get_submeta_nodes(mv3))
+
+    m.remove_node(mv3, remove_submeta=True)
 
 
 if __name__ == '__main__':
