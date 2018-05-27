@@ -11,3 +11,5 @@ sudo neo4j start
 sleep 10s
 
 cat $BASEDIR/neo_import_graph_script.cypher | cypher-shell -u neo4j -p 1234
+# waiting for index generation
+sleep 30s
