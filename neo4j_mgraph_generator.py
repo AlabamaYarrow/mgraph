@@ -25,7 +25,7 @@ META_DEPTH = 0
 
 nodes_file = os.path.join(NEO_DUMPS_DIR, 'graph', 'nodes.csv')
 edgenodes_file = os.path.join(NEO_DUMPS_DIR, 'graph', 'edgenodes.csv')
-graph_file = os.path.join(NEO_DUMPS_DIR, 'graph', 'graph_edges.csv')
+# graph_file = os.path.join(NEO_DUMPS_DIR, 'graph', 'graph_edges.csv')
 
 
 def write_headers():
@@ -38,8 +38,8 @@ def write_headers():
     with open(edgenodes_file, 'w') as f:
         f.write('"_key";"int_attr";"str_attr";"from";"to"\n')
 
-    with open(graph_file, 'w') as f:
-        f.write('"_from";"_to";"submeta"\n')
+    # with open(graph_file, 'w') as f:
+    #     f.write('"_from";"_to";"submeta"\n')
 
 
 def write_nodes(total_nodes=TOTAL_NODES):

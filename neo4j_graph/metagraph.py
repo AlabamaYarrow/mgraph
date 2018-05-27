@@ -16,6 +16,13 @@ NB: requires indexes:
     CREATE INDEX ON :EdgeNode(_id);
     CREATE INDEX ON :EdgeNode(from);
     CREATE INDEX ON :EdgeNode(to);
+    
+    Neo4j:
+        sudo mkdir /var/run/neo4j   (for pid)
+        
+        vim /etc/neo4j/neo4j.conf   
+            change import dir to /tmp:
+                dbms.directories.import=/tmp
 """
 
 EDGENODE_LABEL = 'EdgeNode'
@@ -23,7 +30,7 @@ NODE_LABEL = 'Node'
 
 
 class MetaGraph:
-    meta_label = 'meta_sub'
+    meta_label = 'submeta'
 
     def truncate(self):
         def _truncate(tx):

@@ -135,9 +135,7 @@ def test_get_submeta(m, meta_nids):
 def test_remove_metanodes_deep(m, meta_nids):
     logger.info('Testing removing metanodes with content')
     for (width, depth), nids in meta_nids.items():
-        if isinstance(m, DMetaGraph) and width > 100:  # too slow
-            continue
-        if isinstance(m, GMetaGraph) and width > 1000:  # too slow
+        if isinstance(m, NGMetaGraph) and width > 1000:  # too slow
             continue
         logger.info("  removing node and sub meta nodes with width {} and depth {}".format(width, depth))
 
@@ -232,8 +230,15 @@ def init_dump(graph_type):
 
 
 def load_dump(graph_type):
-    logger.info("Truncating db...")
-    subprocess.call([os.path.join(settings.BASE_DIR, 'neo_trunc_{}.sh'.format(graph_type))])
+    # logger.info("Truncating db...")
+    # subprocess.Popen([
+    #     '/usr/bin/pkexec',
+    #     'sh',
+    #     os.path.join(settings.BASE_DIR, 'neo_trunc_{}.sh'.format(graph_type))]
+    # ).wait()
+    # time.sleep(5)  # because neo4j likes to connrefuse after startup
+    # subprocess.call(['/usr/bin/pkexec', 'sh', os.path.join(settings.BASE_DIR, 'neo_trunc_{}.sh'.format(graph_type))])
+
     logger.info("Loading dump...")
     subprocess.call([os.path.join(settings.BASE_DIR, 'neo_import_{}.sh'.format(graph_type))])
 
@@ -243,7 +248,8 @@ def run_tests():
 
     logger.info('\n******NEO GRAPH MODEL******')
     mgraph_graph = NGMetaGraph()
-    init_dump('graph')
+    # init_dump('graph')
+
     load_dump('graph')
 
     # test_add_remove_nodes_and_edges(mgraph_graph)
