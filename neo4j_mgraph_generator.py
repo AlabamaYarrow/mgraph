@@ -3,10 +3,10 @@ import random
 import sys
 
 from arango_graph.metagraph import MetaGraph
-from settings import DUMPS_DIR
+from settings import NEO_DUMPS_DIR
 
 """
-Arango data generator for graph model.
+Neo4j data generator for graph model.
 """
 
 _10k = 10000
@@ -23,9 +23,9 @@ META_WIDTH = 0
 META_DEPTH = 0
 
 
-nodes_file = os.path.join(DUMPS_DIR, 'graph', 'nodes.csv')
-edgenodes_file = os.path.join(DUMPS_DIR, 'graph', 'edgenodes.csv')
-graph_file = os.path.join(DUMPS_DIR, 'graph', 'graph_edges.csv')
+nodes_file = os.path.join(NEO_DUMPS_DIR, 'graph', 'nodes.csv')
+edgenodes_file = os.path.join(NEO_DUMPS_DIR, 'graph', 'edgenodes.csv')
+graph_file = os.path.join(NEO_DUMPS_DIR, 'graph', 'graph_edges.csv')
 
 
 def write_headers():

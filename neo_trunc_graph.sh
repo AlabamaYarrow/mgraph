@@ -1,0 +1,1 @@
+rm -rf /var/lib/neo4j/data/databases/graph.db

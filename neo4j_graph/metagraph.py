@@ -10,8 +10,16 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
 
-# TODO index _id !!!
-# TODO index edgenode from and to
+"""
+NB: requires indexes:
+    CREATE INDEX ON :Node(_id);
+    CREATE INDEX ON :EdgeNode(_id);
+    CREATE INDEX ON :EdgeNode(from);
+    CREATE INDEX ON :EdgeNode(to);
+"""
+
+EDGENODE_LABEL = 'EdgeNode'
+NODE_LABEL = 'Node'
 
 
 class MetaGraph:
@@ -41,7 +49,7 @@ class MetaGraph:
 
         return self._read(_read)
 
-    def add_node(self, nid, label='Node', **kwargs):
+    def add_node(self, nid, label=NODE_LABEL, **kwargs):
         data = {}
         for k, v in kwargs.items():
             data[k] = v
@@ -56,7 +64,7 @@ class MetaGraph:
 
         return self._write(_create_node).single()[0]
 
-    def add_edge(self, eid, from_node, to_node, label='EdgeNode', **kwargs):
+    def add_edge(self, eid, from_node, to_node, label=EDGENODE_LABEL, **kwargs):
         data = {}
         for k, v in kwargs.items():
             data[k] = v

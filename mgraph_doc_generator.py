@@ -6,6 +6,12 @@ import sys
 from arango_graph.metagraph import MetaGraph
 from settings import DUMPS_DIR
 
+
+"""
+Arango data generator for doc model.
+"""
+
+
 _10k = 10000
 _50k = 50000
 _100k = 100000
