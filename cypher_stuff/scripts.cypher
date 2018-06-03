@@ -25,7 +25,7 @@ cat /home/ivan/workspace/metagraph_neo4j/cypher_stuff/init.cypher | cypher-shell
 		Важно: Эта штука работает только для инициализации базы. Перед импортом надо вырубить сервер (либо рестарнуть после импорта?).
 			Перед импортом надо выпилить базу (можно сразу &&): 
 
-			sudo rm -rf /var/lib/neo4j/data/databases/graph.db && sudo neo4j-admin import --database graph.db --delimiter=';' --array-delimiter=',' --id-type INTEGER --nodes:Town /home/ivan/workspace/metagraph_neo4j/data/t100k/town_with_types.neo.csv
+			sudo rm -rf /var/lib/neo4j/data/databases/graph.db && sudo neo4j-admin import --database graph.db --delimiter=';' --array-delimiter=',' --id-type INTEGER --nodes:Node /home/ivan/workspace/metagraph_neo4j/data/t100k/town_with_types.neo.csv
 
 			Загружавшийся csv:
 				nid:ID;name;type:int

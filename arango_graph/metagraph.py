@@ -277,14 +277,23 @@ def main():
     m = MetaGraph()
     m.truncate()
 
-    mv1 = m.add_node(name='MV1', nid='m1')
-    for x in range(1000):
-        node = m.add_node(nid=str(x))
-        m.add_to_metanode(node, mv1)
-    import time
-    s = time.time()
-    print(len(m.get_submeta_nodes('m1')))
-    print(time.time() - s)
+    v1 = m.add_node(name='v1', nid='v1')
+    v2 = m.add_node(name='v2', nid='v2')
+    e12 = m.add_edge(eid='e12', from_node=v1, to_node=v2)
+    mv1 = m.add_node(name='mv1', nid='mv1')
+
+    m.add_to_metanode(e12, mv1)
+    m.add_to_metanode(v1, mv1)
+    m.add_to_metanode(v2, mv1)
+
+    # mv1 = m.add_node(name='MV1', nid='m1')
+    # for x in range(1000):
+    #     node = m.add_node(nid=str(x))
+    #     m.add_to_metanode(node, mv1)
+    # import time
+    # s = time.time()
+    # print(len(m.get_submeta_nodes('m1')))
+    # print(time.time() - s)
     #
     # mv0 = m.add_node(nid='m0')
     #
