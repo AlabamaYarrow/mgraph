@@ -23,3 +23,16 @@ db._create('Nodes');
 
 db.Nodes.ensureIndex({ type: "hash", fields: [ "from" ], sparse: true });
 db.Nodes.ensureIndex({ type: "hash", fields: [ "to" ], sparse: true });
+
+
+// Init doc-rel db
+db._createDatabase("mgraph-reldoc");
+db._useDatabase("mgraph-reldoc");
+
+db._create('Nodes');
+db._create('Submetas');
+
+db.Nodes.ensureIndex({ type: "hash", fields: [ "from" ], sparse: true });
+db.Nodes.ensureIndex({ type: "hash", fields: [ "to" ], sparse: true });
+db.Submetas.ensureIndex({ type: "hash", fields: [ "parent" ], sparse: true });
+db.Submetas.ensureIndex({ type: "hash", fields: [ "child" ], sparse: true });
