@@ -243,18 +243,26 @@ def main():
     mv1 = m.add_node(nid='mv1', name='metavertex1')
     mv2 = m.add_node(nid='mv2', name='metavertex2')
     mv3 = m.add_node(nid='mv3', name='metavertex3')
+    mv4 = m.add_node(nid='mv4', name='metavertex3')
+    mv5 = m.add_node(nid='mv5', name='metavertex3')
+    mv6 = m.add_node(nid='mv6', name='metavertex3')
+    mv7 = m.add_node(nid='mv7', name='metavertex3')
     e32 = m.add_edge(mv3, mv2, eid='e32', name='edge32')
-    e31 = m.add_edge(mv3, mv1, eid='e31', name='edge31')
+    # e31 = m.add_edge(mv3, mv1, eid='e31', name='edge31')
 
-    m.add_to_metanode(mv2, mv1)
-    m.add_to_metanode(mv3, mv1)
-    m.add_to_metanode(e32, mv1)
+    # m.add_to_metanode(mv2, mv1)
+    # m.add_to_metanode(mv3, mv1)
+    # m.add_to_metanode(mv4, mv1)
+    # m.add_to_metanode(mv5, mv1)
+    # m.add_to_metanode(mv6, mv1)
+    # m.add_to_metanode(mv7, mv1)
+    # m.add_to_metanode(e32, mv1)
 
-    # print(len(m.get_submeta_nodes(mv1)))
+    print(len(m.get_submeta_nodes(mv1)))
     # m.remove_from_metanode(mv2, mv1)
     # print(len(m.get_submeta_nodes(mv1)))
 
-    m.remove_node(mv1, remove_submeta=True)
+    # m.remove_node(mv1, remove_submeta=True)
 
 
     # mv1 = m.add_node(name='MV1', nid='m1')

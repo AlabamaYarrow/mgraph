@@ -12,5 +12,5 @@ PASSWORD = config['passwd']
 DB_NAME = 'mgraph-reldoc'
 
 
-DEBUG = True
+DEBUG = False
 

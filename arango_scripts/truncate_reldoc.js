@@ -1,3 +1,3 @@
-db._useDatabase("mgraph-doc");
+db._useDatabase("mgraph-reldoc");
 db.Nodes.truncate();
 db.Submetas.truncate();
