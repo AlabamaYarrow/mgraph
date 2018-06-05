@@ -176,7 +176,7 @@ def test_remove_metanodes(m, meta_nids):
 # Remember ids of meta vertices in graph for test
 meta_nids_doc = OrderedDict()
 meta_nids_graph = OrderedDict()
-NIDS_PER_TYPE = 10
+NIDS_PER_TYPE = 5
 
 
 def init_dump(graph_type):
@@ -249,13 +249,13 @@ def run_tests():
     mgraph_doc = DMetaGraph()
     init_dump('reldoc')
     load_dump('reldoc')
-    # test_add_remove_nodes_and_edges(mgraph_doc)
-    # test_add_remove_to_metanode(mgraph_doc)
+    test_add_remove_nodes_and_edges(mgraph_doc)
+    test_add_remove_to_metanode(mgraph_doc)
     test_get_submeta(mgraph_doc, meta_nids_doc)
-    # test_remove_metanodes(mgraph_doc, meta_nids_doc)
-    # mgraph_doc.truncate()
-    # load_dump('reldoc')
-    # test_remove_metanodes_deep(mgraph_doc, meta_nids_doc)
+    test_remove_metanodes(mgraph_doc, meta_nids_doc)
+    mgraph_doc.truncate()
+    load_dump('reldoc')
+    test_remove_metanodes_deep(mgraph_doc, meta_nids_doc)
 
     mgraph_doc.truncate()
 

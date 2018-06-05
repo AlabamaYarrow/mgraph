@@ -181,13 +181,9 @@ class MetaGraph:
                 FOR sub_connection IN {meta_relations}
                 FILTER sub_connection.parent == '{node_id}'
                     FOR node IN {nodes_collection}  
-                      LET nodes_connections = (
-                        FOR node_sub_connection IN {meta_relations}
-                        FILTER node_sub_connection.parent == node._id
-                        RETURN node_sub_connection
-                      )
+
                     FILTER node._id == sub_connection.child
-                        RETURN {{node: node, connections: nodes_connections}}
+                        RETURN node
             '''.format(
                 meta_relations=self.METAREL_COLL,
                 node_id=node_id,
@@ -200,9 +196,9 @@ class MetaGraph:
         nodes_to_visit = []
 
         while True:
-            node_submetas = _get_submetas(node)
-            submeta_nodes.extend([_n['node'] for _n in node_submetas])
-            nodes_to_visit.extend([_n['node'] for _n in node_submetas if _n['connections']])
+            node_submetas = _get_submetas(node)  # [_n['node'] for _n in _get_submetas(node)]
+            submeta_nodes.extend(node_submetas)
+            nodes_to_visit.extend(node_submetas)
             if not nodes_to_visit:
                 break
             node = nodes_to_visit.pop()
